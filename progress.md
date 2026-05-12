@@ -6,7 +6,7 @@ CirclePulse
 
 ## Current Stage
 
-Planning complete. Implementation not started.
+Phase 1 started. Initial Flutter app shell and clean folder structure are in place.
 
 ## Product Summary
 
@@ -25,15 +25,15 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 
 ### 1. Project Setup
 
-- [ ] Create Flutter project
+- [x] Create Flutter project
 - [ ] Add Firebase dependencies
 - [ ] Add Riverpod
 - [ ] Add GoRouter
 - [ ] Add image picker
 - [ ] Add Firebase config
-- [ ] Create folder structure
-- [ ] Add app theme
-- [ ] Add router shell
+- [x] Create folder structure
+- [x] Add app theme
+- [x] Add router shell
 
 ### 2. Authentication
 
@@ -234,12 +234,12 @@ These do not block MVP:
 
 ## Next Step
 
-Create the Flutter project and implement the base app shell:
+Continue Phase 1 setup:
 
-1. create project
-2. add dependencies
-3. configure Firebase
-4. add router
-5. add theme
-6. create folder structure
+1. add Firebase dependencies
+2. add Riverpod
+3. add GoRouter
+4. add image picker
+5. configure Firebase
+6. wire router to GoRouter
 7. implement auth flow first

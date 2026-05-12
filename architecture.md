@@ -40,32 +40,46 @@ Flutter App
 
 ## Flutter Architecture
 
-Use a feature-first structure.
+Use a feature-first structure with shared app infrastructure at the top level.
 
 ```txt
 lib/
   main.dart
 
-  app/
-    app.dart
-    router.dart
-    theme.dart
+  app.dart
 
   core/
     constants/
       app_constants.dart
-      firestore_paths.dart
     errors/
       app_exception.dart
     utils/
       date_key.dart
       invite_code_generator.dart
+
+  routing/
+    app_router.dart
+
+  theme/
+    app_theme.dart
+
+  shared/
     widgets/
-      app_button.dart
-      app_text_field.dart
       empty_state.dart
       loading_view.dart
       error_view.dart
+      app_button.dart
+      app_text_field.dart
+    models/
+    extensions/
+
+  services/
+    firebase/
+      firebase_service.dart
+    storage/
+      storage_service.dart
+    notifications/
+      notification_service.dart
 
   features/
     auth/
