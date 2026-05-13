@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/utils/media_type.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/circlepulse_ui.dart';
 import 'pulse_controller.dart';
 
 class CreatePulseScreen extends ConsumerStatefulWidget {
@@ -44,8 +45,14 @@ class _CreatePulseScreenState extends ConsumerState<CreatePulseScreen> {
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Post Pulse')),
+    return WarmScaffold(
+      appBar: WarmAppBar(
+        leading: SoftIconButton(
+          icon: Icons.arrow_back,
+          tooltip: 'Back',
+          onPressed: () => context.pop(),
+        ),
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -55,56 +62,96 @@ class _CreatePulseScreenState extends ConsumerState<CreatePulseScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  AspectRatio(
-                    aspectRatio: 4 / 3,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: _previewBytes == null
-                          ? const Center(
-                              child: Icon(Icons.add_a_photo_outlined, size: 48),
-                            )
-                          : ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.memory(
-                                _previewBytes!,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
+                  Text(
+                    'Create Pulse',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: state.isLoading ? null : _pickImage,
-                    icon: const Icon(Icons.photo_library_outlined),
-                    label: const Text('Choose Photo'),
-                  ),
-                  const SizedBox(height: 16),
-                  AppTextField(
-                    controller: _captionController,
-                    label: 'Caption',
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 16),
-                  AppTextField(
-                    controller: _moodController,
-                    label: 'Mood',
-                    textInputAction: TextInputAction.done,
+                  const SizedBox(height: 8),
+                  Text(
+                    'Share one moment from your day.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: CirclePulseColors.muted,
+                    ),
                   ),
                   const SizedBox(height: 24),
-                  FilledButton.icon(
+                  AspectRatio(
+                    aspectRatio: 1.08,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: CirclePulseColors.cardAlt,
+                              border: Border.all(
+                                color: CirclePulseColors.outline,
+                              ),
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                            child: _previewBytes == null
+                                ? const Center(
+                                    child: Icon(
+                                      Icons.add_a_photo_outlined,
+                                      size: 58,
+                                      color: CirclePulseColors.clay,
+                                    ),
+                                  )
+                                : ClipRRect(
+                                    borderRadius: BorderRadius.circular(22),
+                                    child: Image.memory(
+                                      _previewBytes!,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        Positioned(
+                          right: 18,
+                          bottom: 18,
+                          child: IconButton.filled(
+                            tooltip: 'Choose photo',
+                            onPressed: state.isLoading ? null : _pickImage,
+                            icon: const Icon(Icons.photo_camera_outlined),
+                            style: IconButton.styleFrom(
+                              backgroundColor: CirclePulseColors.clay,
+                              foregroundColor: Colors.white,
+                              fixedSize: const Size.square(58),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  AppTextField(
+                    controller: _captionController,
+                    label: 'Add a caption (optional)',
+                    hintText: 'Slow morning, warm coffee...',
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 14),
+                  AppTextField(
+                    controller: _moodController,
+                    label: 'Mood (optional)',
+                    hintText: 'cozy, grateful, excited',
+                    prefixIcon: Icons.auto_awesome,
+                    textInputAction: TextInputAction.done,
+                  ),
+                  const SizedBox(height: 16),
+                  const SoftInfoPanel(
+                    icon: Icons.eco_outlined,
+                    title: 'Visible to your Circle',
+                    message: 'Your Pulse helps keep everyone connected today.',
+                  ),
+                  const SizedBox(height: 18),
+                  PrimaryGradientButton(
+                    label: 'Post Pulse',
+                    icon: Icons.cloud_upload_outlined,
+                    isLoading: state.isLoading,
                     onPressed: state.isLoading ? null : _submit,
-                    icon: state.isLoading
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.cloud_upload_outlined),
-                    label: const Text('Post Pulse'),
                   ),
                 ],
               ),

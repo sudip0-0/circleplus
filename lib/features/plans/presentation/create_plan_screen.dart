@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/circlepulse_ui.dart';
 import 'plan_controller.dart';
 
 class CreatePlanScreen extends ConsumerStatefulWidget {
@@ -41,8 +42,14 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Create Plan')),
+    return WarmScaffold(
+      appBar: WarmAppBar(
+        leading: SoftIconButton(
+          icon: Icons.arrow_back,
+          tooltip: 'Back',
+          onPressed: () => context.pop(),
+        ),
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -54,41 +61,85 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    AppTextField(
-                      controller: _titleController,
-                      label: 'Title',
-                      textInputAction: TextInputAction.next,
-                      validator: _validateTitle,
+                    Text(
+                      'Create Plan',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w800),
                     ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: _descriptionController,
-                      label: 'Description',
-                      maxLines: 3,
+                    const SizedBox(height: 8),
+                    Text(
+                      'Plan something great together.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: CirclePulseColors.muted,
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: _locationController,
-                      label: 'Location',
-                      textInputAction: TextInputAction.done,
-                    ),
-                    const SizedBox(height: 16),
-                    OutlinedButton.icon(
-                      onPressed: _pickDateTime,
-                      icon: const Icon(Icons.event_outlined),
-                      label: Text(
-                        '${MaterialLocalizations.of(context).formatMediumDate(_startsAt)} at ${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(_startsAt))}',
+                    const SizedBox(height: 30),
+                    WarmCard(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        children: [
+                          AppTextField(
+                            controller: _titleController,
+                            label: 'Title',
+                            hintText: 'Sunset picnic',
+                            prefixIcon: Icons.wb_twilight_outlined,
+                            textInputAction: TextInputAction.next,
+                            validator: _validateTitle,
+                          ),
+                          const SizedBox(height: 14),
+                          _PickerTile(
+                            icon: Icons.calendar_month_outlined,
+                            label: 'Date',
+                            value: MaterialLocalizations.of(
+                              context,
+                            ).formatMediumDate(_startsAt),
+                            onTap: _pickDateTime,
+                          ),
+                          const SizedBox(height: 14),
+                          _PickerTile(
+                            icon: Icons.schedule_outlined,
+                            label: 'Time',
+                            value: MaterialLocalizations.of(context)
+                                .formatTimeOfDay(
+                                  TimeOfDay.fromDateTime(_startsAt),
+                                ),
+                            onTap: _pickDateTime,
+                          ),
+                          const SizedBox(height: 14),
+                          AppTextField(
+                            controller: _locationController,
+                            label: 'Location',
+                            hintText: 'Riverside Park',
+                            prefixIcon: Icons.place_outlined,
+                            textInputAction: TextInputAction.done,
+                          ),
+                          const SizedBox(height: 14),
+                          AppTextField(
+                            controller: _descriptionController,
+                            label: 'Note (optional)',
+                            hintText: "Let's bring snacks and good vibes!",
+                            prefixIcon: Icons.notes_outlined,
+                            maxLines: 3,
+                          ),
+                          const SizedBox(height: 14),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            value: true,
+                            onChanged: (_) {},
+                            title: const Text('Allow others to invite friends'),
+                            activeThumbColor: CirclePulseColors.clay,
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 24),
-                    FilledButton(
+                    PrimaryGradientButton(
+                      label: 'Create Plan',
+                      icon: Icons.event_available_outlined,
+                      isLoading: state.isLoading,
                       onPressed: state.isLoading ? null : _submit,
-                      child: state.isLoading
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Create Plan'),
                     ),
                   ],
                 ),
@@ -151,5 +202,35 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
       return 'Plan title must be at least 2 characters.';
     }
     return null;
+  }
+}
+
+class _PickerTile extends StatelessWidget {
+  const _PickerTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+          suffixIcon: const Icon(Icons.chevron_right),
+        ),
+        child: Text(value),
+      ),
+    );
   }
 }

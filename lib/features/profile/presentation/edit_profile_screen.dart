@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/utils/media_type.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/avatar.dart';
+import '../../../shared/widgets/circlepulse_ui.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_view.dart';
 import '../../auth/presentation/auth_controller.dart';
@@ -49,8 +50,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+    return WarmScaffold(
+      appBar: WarmAppBar(
+        leading: SoftIconButton(
+          icon: Icons.arrow_back,
+          tooltip: 'Back',
+          onPressed: () => context.go('/home'),
+        ),
+      ),
       body: profile.when(
         loading: () => const LoadingView(),
         error: (error, stackTrace) => ErrorView(message: error.toString()),
@@ -198,24 +205,41 @@ class _ProfileForm extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Text(
+                    'Make your profile feel like you',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: CirclePulseColors.cocoa,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'This helps your circle get to know you better.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: CirclePulseColors.muted,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   Center(
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
                         if (avatarBytes != null)
                           CircleAvatar(
-                            radius: 44,
+                            radius: 58,
                             backgroundImage: MemoryImage(avatarBytes!),
                           )
                         else
                           Avatar(
                             displayName: displayNameController.text,
                             photoUrl: photoUrl,
-                            radius: 44,
+                            radius: 58,
                           ),
                         Positioned(
-                          right: -4,
-                          bottom: -4,
+                          right: -2,
+                          bottom: -2,
                           child: IconButton.filled(
                             tooltip: 'Choose avatar',
                             onPressed: isLoading ? null : onPickAvatar,
@@ -226,27 +250,42 @@ class _ProfileForm extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  AppTextField(
-                    controller: displayNameController,
-                    label: 'Display name',
-                    textInputAction: TextInputAction.next,
-                    validator: validateDisplayName,
-                  ),
-                  const SizedBox(height: 16),
-                  AppTextField(
-                    controller: bioController,
-                    label: 'Bio',
-                    maxLines: 4,
-                  ),
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: isLoading ? null : onSave,
-                    child: isLoading
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Save Profile'),
+                  WarmCard(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      children: [
+                        AppTextField(
+                          controller: displayNameController,
+                          label: 'Display name',
+                          prefixIcon: Icons.person_outline,
+                          textInputAction: TextInputAction.next,
+                          validator: validateDisplayName,
+                        ),
+                        const SizedBox(height: 14),
+                        AppTextField(
+                          controller: bioController,
+                          label: 'Bio',
+                          prefixIcon: Icons.chat_bubble_outline,
+                          maxLines: 4,
+                        ),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          initialValue: 'Email address',
+                          enabled: false,
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(Icons.mail_outline),
+                            suffixIcon: Icon(Icons.lock_outline),
+                          ),
+                        ),
+                        const SizedBox(height: 22),
+                        PrimaryGradientButton(
+                          label: 'Save Profile',
+                          icon: Icons.check,
+                          isLoading: isLoading,
+                          onPressed: isLoading ? null : onSave,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

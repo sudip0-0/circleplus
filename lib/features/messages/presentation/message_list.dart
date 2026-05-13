@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/widgets/avatar.dart';
+import '../../../shared/widgets/circlepulse_ui.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_view.dart';
@@ -30,7 +31,7 @@ class MessageList extends ConsumerWidget {
           );
         }
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           itemCount: items.length,
           itemBuilder: (context, index) {
             final message = items[index];
@@ -53,7 +54,7 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final time = TimeOfDay.fromDateTime(message.createdAt);
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: ConstrainedBox(
@@ -71,10 +72,27 @@ class _MessageBubble extends StatelessWidget {
               const SizedBox(width: 6),
             ],
             Flexible(
-              child: Card(
-                color: isMine
-                    ? colorScheme.primaryContainer
-                    : colorScheme.surface,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: isMine
+                      ? CirclePulseColors.cardAlt
+                      : CirclePulseColors.warmSurface,
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(16),
+                    topRight: const Radius.circular(16),
+                    bottomLeft: Radius.circular(isMine ? 16 : 4),
+                    bottomRight: Radius.circular(isMine ? 4 : 16),
+                  ),
+                  border: Border.all(color: CirclePulseColors.outline),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.brown.withValues(alpha: 0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
@@ -117,6 +135,15 @@ class _MessageBubble extends StatelessWidget {
                           const SizedBox(height: 8),
                       ],
                       if (message.text?.isNotEmpty == true) Text(message.text!),
+                      const SizedBox(height: 4),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          time.format(context),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(color: CirclePulseColors.muted),
+                        ),
+                      ),
                     ],
                   ),
                 ),

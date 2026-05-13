@@ -5,6 +5,7 @@ import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_view.dart';
 import '../../../shared/widgets/avatar.dart';
+import '../../../shared/widgets/circlepulse_ui.dart';
 import 'circle_controller.dart';
 
 class CircleMembersScreen extends ConsumerWidget {
@@ -15,9 +16,26 @@ class CircleMembersScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final members = ref.watch(circleMembersProvider(circleId));
+    final circle = ref.watch(circleProvider(circleId));
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Members')),
+    return WarmScaffold(
+      appBar: WarmAppBar(
+        title: 'Circle Members',
+        subtitle: 'Private invite list',
+        leading: SoftIconButton(
+          icon: Icons.arrow_back,
+          tooltip: 'Back',
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        actions: [
+          SoftIconButton(
+            icon: Icons.person_add_alt_1_outlined,
+            tooltip: 'Invite member',
+            onPressed: () {},
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: members.when(
         loading: () => const LoadingView(),
         error: (error, stackTrace) => ErrorView(message: error.toString()),
@@ -28,23 +46,156 @@ class CircleMembersScreen extends ConsumerWidget {
               message: 'Invite people into this private Circle.',
             );
           }
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: items.length,
-            separatorBuilder: (context, index) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final member = items[index];
-              return ListTile(
-                leading: Avatar(
-                  displayName: member.displayName,
-                  photoUrl: member.photoUrl,
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            children: [
+              circle.maybeWhen(
+                data: (item) => item == null
+                    ? const SizedBox.shrink()
+                    : _InviteCard(
+                        circleName: item.name,
+                        inviteCode: item.inviteCode,
+                      ),
+                orElse: () => const SizedBox.shrink(),
+              ),
+              const SizedBox(height: 14),
+              ...items.map(
+                (member) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: WarmCard(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      children: [
+                        Avatar(
+                          displayName: member.displayName,
+                          photoUrl: member.photoUrl,
+                          radius: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                member.displayName,
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.w800),
+                              ),
+                              Text(
+                                member.role.name == 'creator'
+                                    ? 'posted today'
+                                    : 'joined recently',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: member.role.name == 'creator'
+                                          ? Colors.green.shade700
+                                          : CirclePulseColors.muted,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (member.role.name == 'creator')
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: CirclePulseColors.cardAlt,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: const Text(
+                              'Admin',
+                              style: TextStyle(
+                                color: CirclePulseColors.clay,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        IconButton(
+                          tooltip: 'Member options',
+                          onPressed: () {},
+                          icon: const Icon(Icons.more_horiz),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                title: Text(member.displayName),
-                subtitle: Text(member.role.name),
-              );
-            },
+              ),
+            ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _InviteCard extends StatelessWidget {
+  const _InviteCard({required this.circleName, required this.inviteCode});
+
+  final String circleName;
+  final String inviteCode;
+
+  @override
+  Widget build(BuildContext context) {
+    return WarmCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Invite to $circleName',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Share this code with others to invite them to your Circle.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: CirclePulseColors.muted),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: CirclePulseColors.warmSurface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: CirclePulseColors.outline),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SelectableText(
+                    inviteCode,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Copy code',
+                  onPressed: () {},
+                  icon: const Icon(Icons.copy_outlined),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Anyone with the code can join',
+            textAlign: TextAlign.center,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: CirclePulseColors.muted),
+          ),
+        ],
       ),
     );
   }

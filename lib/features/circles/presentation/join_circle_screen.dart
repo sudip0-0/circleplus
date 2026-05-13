@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/utils/invite_code_generator.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/circlepulse_ui.dart';
 import 'circle_controller.dart';
 
 class JoinCircleScreen extends ConsumerStatefulWidget {
@@ -35,8 +36,14 @@ class _JoinCircleScreenState extends ConsumerState<JoinCircleScreen> {
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Join Circle')),
+    return WarmScaffold(
+      appBar: WarmAppBar(
+        leading: SoftIconButton(
+          icon: Icons.arrow_back,
+          tooltip: 'Back',
+          onPressed: () => context.pop(),
+        ),
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -49,21 +56,75 @@ class _JoinCircleScreenState extends ConsumerState<JoinCircleScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    AppTextField(
-                      controller: _codeController,
-                      label: 'Invite code',
-                      textInputAction: TextInputAction.done,
-                      validator: _validateCode,
+                    Text(
+                      'Join a Circle',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w800),
                     ),
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: state.isLoading ? null : _submit,
-                      child: state.isLoading
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Join with Code'),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Got an invite code? Enter it below to join your people.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: CirclePulseColors.muted,
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    Align(
+                      child: Container(
+                        width: 144,
+                        height: 144,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: CirclePulseColors.cardAlt,
+                          border: Border.all(
+                            color: CirclePulseColors.outline,
+                            width: 3,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.weekend_outlined,
+                          color: CirclePulseColors.clay,
+                          size: 56,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    WarmCard(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          AppTextField(
+                            controller: _codeController,
+                            label: 'Invite code',
+                            hintText: 'ABC123',
+                            prefixIcon: Icons.vpn_key_outlined,
+                            textInputAction: TextInputAction.done,
+                            validator: _validateCode,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Codes are usually 6 characters, letters and numbers.',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: CirclePulseColors.muted),
+                          ),
+                          const SizedBox(height: 22),
+                          PrimaryGradientButton(
+                            label: 'Join Circle',
+                            icon: Icons.group_add_outlined,
+                            isLoading: state.isLoading,
+                            onPressed: state.isLoading ? null : _submit,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    const SoftInfoPanel(
+                      icon: Icons.groups_outlined,
+                      title: 'A friend must share the code',
+                      message: 'Each Circle is private and invite-only.',
                     ),
                   ],
                 ),

@@ -4,6 +4,9 @@ class AppTextField extends StatelessWidget {
   const AppTextField({
     required this.controller,
     required this.label,
+    this.hintText,
+    this.prefixIcon,
+    this.suffixIcon,
     this.keyboardType,
     this.textInputAction,
     this.obscureText = false,
@@ -14,6 +17,9 @@ class AppTextField extends StatelessWidget {
 
   final TextEditingController controller;
   final String label;
+  final String? hintText;
+  final IconData? prefixIcon;
+  final Widget? suffixIcon;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final bool obscureText;
@@ -31,7 +37,9 @@ class AppTextField extends StatelessWidget {
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
-        border: const OutlineInputBorder(),
+        hintText: hintText,
+        prefixIcon: prefixIcon == null ? null : Icon(prefixIcon),
+        suffixIcon: suffixIcon,
       ),
     );
   }

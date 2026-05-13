@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/utils/media_type.dart';
+import '../../../shared/widgets/circlepulse_ui.dart';
 import 'message_controller.dart';
 
 class MessageComposer extends ConsumerStatefulWidget {
@@ -55,21 +56,36 @@ class _MessageComposerState extends ConsumerState<MessageComposer> {
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => _send(),
                 decoration: const InputDecoration(
-                  hintText: 'Message this Circle',
-                  border: OutlineInputBorder(),
+                  hintText: 'Type a message...',
                 ),
               ),
             ),
             const SizedBox(width: 8),
-            IconButton.filled(
-              tooltip: 'Send message',
-              onPressed: state.isLoading ? null : _send,
-              icon: state.isLoading
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.send),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [CirclePulseColors.clay, CirclePulseColors.clayDark],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: CirclePulseColors.clay.withValues(alpha: 0.25),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                tooltip: 'Send message',
+                color: Colors.white,
+                onPressed: state.isLoading ? null : _send,
+                icon: state.isLoading
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.send_rounded),
+              ),
             ),
           ],
         ),

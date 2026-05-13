@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/circlepulse_ui.dart';
 import 'auth_controller.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
@@ -38,8 +39,14 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Create Account')),
+    return WarmScaffold(
+      appBar: WarmAppBar(
+        leading: SoftIconButton(
+          icon: Icons.arrow_back,
+          tooltip: 'Back',
+          onPressed: () => context.go('/sign-in'),
+        ),
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -51,44 +58,81 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    AppTextField(
-                      controller: _displayNameController,
-                      label: 'Display name',
-                      textInputAction: TextInputAction.next,
-                      validator: _validateDisplayName,
+                    const Center(child: CirclePulseLogo(size: 46)),
+                    const SizedBox(height: 22),
+                    Text(
+                      'Create your account',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w800),
                     ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: _emailController,
-                      label: 'Email',
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      validator: _validateEmail,
+                    const SizedBox(height: 8),
+                    Text(
+                      'Start building closer connections with your people.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: CirclePulseColors.muted,
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: _passwordController,
-                      label: 'Password',
-                      obscureText: true,
-                      textInputAction: TextInputAction.done,
-                      validator: _validatePassword,
+                    const SizedBox(height: 34),
+                    WarmCard(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          AppTextField(
+                            controller: _displayNameController,
+                            label: 'Display name',
+                            prefixIcon: Icons.person_outline,
+                            textInputAction: TextInputAction.next,
+                            validator: _validateDisplayName,
+                          ),
+                          const SizedBox(height: 14),
+                          AppTextField(
+                            controller: _emailController,
+                            label: 'Email address',
+                            prefixIcon: Icons.mail_outline,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            validator: _validateEmail,
+                          ),
+                          const SizedBox(height: 14),
+                          AppTextField(
+                            controller: _passwordController,
+                            label: 'Password',
+                            prefixIcon: Icons.lock_outline,
+                            suffixIcon: const Icon(Icons.visibility_outlined),
+                            obscureText: true,
+                            textInputAction: TextInputAction.done,
+                            validator: _validatePassword,
+                          ),
+                          const SizedBox(height: 22),
+                          PrimaryGradientButton(
+                            label: 'Create Account',
+                            icon: Icons.favorite,
+                            isLoading: authState.isLoading,
+                            onPressed: authState.isLoading ? null : _submit,
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: authState.isLoading ? null : _submit,
-                      child: authState.isLoading
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Sign Up'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextButton(
-                      onPressed: authState.isLoading
-                          ? null
-                          : () => context.go('/sign-in'),
-                      child: const Text('I already have an account'),
+                    const SizedBox(height: 26),
+                    Center(
+                      child: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            'Already have an account? ',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          TextButton(
+                            onPressed: authState.isLoading
+                                ? null
+                                : () => context.go('/sign-in'),
+                            child: const Text('Sign In'),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

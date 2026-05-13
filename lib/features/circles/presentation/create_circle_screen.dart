@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/circlepulse_ui.dart';
 import 'circle_controller.dart';
 
 class CreateCircleScreen extends ConsumerStatefulWidget {
@@ -36,8 +37,14 @@ class _CreateCircleScreenState extends ConsumerState<CreateCircleScreen> {
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Create Circle')),
+    return WarmScaffold(
+      appBar: WarmAppBar(
+        leading: SoftIconButton(
+          icon: Icons.arrow_back,
+          tooltip: 'Back',
+          onPressed: () => context.pop(),
+        ),
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -49,27 +56,87 @@ class _CreateCircleScreenState extends ConsumerState<CreateCircleScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    AppTextField(
-                      controller: _nameController,
-                      label: 'Circle name',
-                      textInputAction: TextInputAction.next,
-                      validator: _validateName,
+                    Text(
+                      'Create Circle',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w800),
                     ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: _descriptionController,
-                      label: 'Description',
-                      maxLines: 3,
+                    const SizedBox(height: 8),
+                    Text(
+                      'Build a private space for your people.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: CirclePulseColors.muted,
+                      ),
                     ),
                     const SizedBox(height: 24),
-                    FilledButton(
+                    Align(
+                      child: Container(
+                        width: 94,
+                        height: 94,
+                        alignment: Alignment.center,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [Color(0xFFFFC09C), CirclePulseColors.clay],
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.groups_rounded,
+                          color: Colors.white,
+                          size: 46,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    WarmCard(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        children: [
+                          AppTextField(
+                            controller: _nameController,
+                            label: 'Circle name',
+                            hintText: 'e.g. Weekend Crew',
+                            prefixIcon: Icons.group_outlined,
+                            textInputAction: TextInputAction.next,
+                            validator: _validateName,
+                          ),
+                          const SizedBox(height: 14),
+                          AppTextField(
+                            controller: _descriptionController,
+                            label: 'Short description (optional)',
+                            hintText: "What's this Circle about?",
+                            prefixIcon: Icons.chat_bubble_outline,
+                            maxLines: 3,
+                          ),
+                          const SizedBox(height: 14),
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(
+                              Icons.mood_outlined,
+                              color: CirclePulseColors.clay,
+                            ),
+                            title: const Text('Cover icon (optional)'),
+                            subtitle: const Text('Choose an emoji or icon'),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () {},
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    const SoftInfoPanel(
+                      icon: Icons.lock_outline,
+                      title: 'Circles are private',
+                      message: "Only invited members can see what's inside.",
+                    ),
+                    const SizedBox(height: 18),
+                    PrimaryGradientButton(
+                      label: 'Create Circle',
+                      icon: Icons.add,
+                      isLoading: state.isLoading,
                       onPressed: state.isLoading ? null : _submit,
-                      child: state.isLoading
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Create Circle'),
                     ),
                   ],
                 ),

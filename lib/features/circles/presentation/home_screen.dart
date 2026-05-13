@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_view.dart';
+import '../../../shared/widgets/circlepulse_ui.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../notifications/presentation/notification_controller.dart';
 import '../../pulses/presentation/pulse_controller.dart';
@@ -42,21 +43,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final circles = ref.watch(userCirclesProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('CirclePulse'),
+    return WarmScaffold(
+      appBar: WarmAppBar(
+        title: 'CirclePulse',
         actions: [
-          IconButton(
+          SoftIconButton(
+            tooltip: 'Notifications',
+            onPressed: () {},
+            icon: Icons.notifications_none,
+          ),
+          SoftIconButton(
             tooltip: 'Edit profile',
             onPressed: () => context.push('/profile/edit'),
-            icon: const Icon(Icons.person_outline),
+            icon: Icons.person_outline,
           ),
-          IconButton(
+          SoftIconButton(
             tooltip: 'Sign out',
             onPressed: () =>
                 ref.read(authControllerProvider.notifier).signOut(),
-            icon: const Icon(Icons.logout),
+            icon: Icons.logout,
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: circles.when(
@@ -71,21 +78,79 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               actions: _homeActions(context),
             );
           }
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: items.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              return CircleCard(circle: items[index]);
-            },
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 112),
+            children: [
+              Text(
+                'Good evening',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: CirclePulseColors.cocoa,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "So glad you're here.",
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: CirclePulseColors.muted,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _OverallPulseProgress(circles: items),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'My Circles',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  TextButton(onPressed: () {}, child: const Text('View all')),
+                ],
+              ),
+              const SizedBox(height: 10),
+              ...items.map(
+                (circle) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: CircleCard(circle: circle),
+                ),
+              ),
+            ],
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/circles/create'),
-        icon: const Icon(Icons.add),
-        label: const Text('Create Circle'),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: PrimaryGradientButton(
+            label: 'Create or Join a Circle',
+            icon: Icons.add,
+            onPressed: () => _showCircleActions(context),
+          ),
+        ),
       ),
+    );
+  }
+
+  void _showCircleActions(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: _homeActions(context),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -112,23 +177,176 @@ class CircleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        onTap: () => context.push('/circles/${circle.id}'),
-        title: Text(circle.name),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              circle.description?.isNotEmpty == true
-                  ? circle.description!
-                  : '${circle.memberCount} member${circle.memberCount == 1 ? '' : 's'}',
+    return WarmCard(
+      onTap: () => context.push('/circles/${circle.id}'),
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          _CircleCover(circle: circle, size: 58),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        circle.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.lock_outline,
+                      size: 14,
+                      color: CirclePulseColors.muted,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${circle.memberCount} member${circle.memberCount == 1 ? '' : 's'}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: CirclePulseColors.muted,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  circle.lastMessageText?.isNotEmpty == true
+                      ? circle.lastMessageText!
+                      : (circle.description?.isNotEmpty == true
+                            ? circle.description!
+                            : 'No messages yet'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            _HomePulseProgress(circle: circle),
-          ],
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _HomePulseProgress(circle: circle),
+              const SizedBox(height: 8),
+              const Icon(Icons.more_vert, color: CirclePulseColors.muted),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CircleCover extends StatelessWidget {
+  const _CircleCover({required this.circle, this.size = 48});
+
+  final CircleModel circle;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    if (circle.coverUrl?.isNotEmpty == true) {
+      return ClipOval(
+        child: Image.network(
+          circle.coverUrl!,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) =>
+              _FallbackCircleCover(circle: circle, size: size),
         ),
-        trailing: const Icon(Icons.chevron_right),
+      );
+    }
+    return _FallbackCircleCover(circle: circle, size: size);
+  }
+}
+
+class _FallbackCircleCover extends StatelessWidget {
+  const _FallbackCircleCover({required this.circle, required this.size});
+
+  final CircleModel circle;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [Color(0xFFFFD9C3), Color(0xFFEAA071)],
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        circle.name.trim().isEmpty
+            ? '?'
+            : circle.name.characters.first.toUpperCase(),
+        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _OverallPulseProgress extends StatelessWidget {
+  const _OverallPulseProgress({required this.circles});
+
+  final List<CircleModel> circles;
+
+  @override
+  Widget build(BuildContext context) {
+    final members = circles.fold<int>(
+      0,
+      (sum, circle) => sum + circle.memberCount,
+    );
+    final total = members == 0 ? circles.length : members;
+    final posted = total == 0 ? 0 : (total / 2).round().clamp(0, total);
+    final progress = total == 0 ? 0.0 : posted / total;
+
+    return WarmCard(
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Today's Pulse progress",
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text('$posted of $total members posted'),
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 8,
+                    backgroundColor: CirclePulseColors.outline,
+                    color: CirclePulseColors.clay,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          const Icon(
+            Icons.local_fire_department,
+            color: CirclePulseColors.clay,
+          ),
+        ],
       ),
     );
   }
@@ -158,8 +376,21 @@ class _HomePulseProgress extends ConsumerWidget {
         final total = circle.memberCount <= 0
             ? items.length
             : circle.memberCount;
-        final status = posted ? 'You posted' : 'Post yours';
-        return Text('Pulses today: ${items.length}/$total - $status');
+        final status = posted ? Icons.favorite : Icons.add_a_photo_outlined;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(status, size: 16, color: CirclePulseColors.clay),
+            const SizedBox(width: 3),
+            Text(
+              '${items.length}/$total',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: CirclePulseColors.muted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        );
       },
     );
   }

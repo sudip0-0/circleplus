@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_view.dart';
+import '../../../shared/widgets/circlepulse_ui.dart';
 import 'pulse_controller.dart';
 
 class PulseWallScreen extends ConsumerWidget {
@@ -15,8 +16,11 @@ class PulseWallScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pulses = ref.watch(todayPulsesProvider(circleId));
 
-    return Scaffold(
-      appBar: AppBar(title: const Text("Today's Pulses")),
+    return WarmScaffold(
+      appBar: const WarmAppBar(
+        title: "Today's Pulses",
+        subtitle: "See what's happening in your Circle",
+      ),
       body: pulses.when(
         loading: () => const LoadingView(),
         error: (error, stackTrace) => ErrorView(message: error.toString()),
@@ -28,35 +32,40 @@ class PulseWallScreen extends ConsumerWidget {
             );
           }
           return ListView.separated(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             itemCount: items.length,
             separatorBuilder: (context, index) => const SizedBox(height: 16),
             itemBuilder: (context, index) {
               final pulse = items[index];
-              return Card(
-                clipBehavior: Clip.antiAlias,
+              return WarmCard(
+                padding: EdgeInsets.zero,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     AspectRatio(
                       aspectRatio: 4 / 3,
-                      child: Image.network(
-                        pulse.photoUrl,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Icon(
-                              Icons.broken_image_outlined,
-                              size: 48,
-                            ),
-                          );
-                        },
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(18),
+                        ),
+                        child: Image.network(
+                          pulse.photoUrl,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Center(
+                              child: Icon(
+                                Icons.broken_image_outlined,
+                                size: 48,
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ),
                     Padding(
@@ -84,14 +93,14 @@ class PulseWallScreen extends ConsumerWidget {
                               children: [
                                 Text(
                                   pulse.userName,
-                                  style:
-                                      Theme.of(context).textTheme.titleSmall,
+                                  style: Theme.of(context).textTheme.titleSmall,
                                 ),
                                 if (pulse.caption?.isNotEmpty == true)
                                   Text(
                                     pulse.caption!,
-                                    style:
-                                        Theme.of(context).textTheme.bodyMedium,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
                                   ),
                               ],
                             ),

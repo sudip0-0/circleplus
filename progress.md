@@ -6,7 +6,7 @@ CirclePulse
 
 ## Current Stage
 
-Phase 4 in progress. Firebase initialization, Riverpod app scope, GoRouter routing, Authentication, Profile, Circles, bounded text/photo Messages, Pulse structure/wall/Home progress, lightweight Plans, local Firestore rules, private invite-code lookup, a Cloudflare Worker R2 upload signer scaffold, media upload wiring, avatar upload, and notification-ready FCM token storage are in place. Current work is focused on deployment readiness and a two-user MVP smoke test.
+Phase 4 in progress. Firebase initialization, Riverpod app scope, GoRouter routing, Authentication, Profile, Circles, bounded text/photo Messages, Pulse structure/wall/Home progress, lightweight Plans, local Firestore rules, private invite-code lookup, a Cloudflare Worker R2 upload signer scaffold, media upload wiring, avatar upload, notification-ready FCM token storage, and the warm CirclePulse MVP UI pass are in place. Current work is focused on deployment readiness, responsive device checks, and a two-user MVP smoke test.
 
 ## Product Summary
 
@@ -157,16 +157,18 @@ Firestore indexes are configured locally in `firestore.indexes.json`. The Home s
 
 ### 11. UI Polish
 
-- [ ] Add consistent spacing
-- [ ] Add reusable button
-- [ ] Add reusable text field
+- [x] Add consistent spacing
+- [x] Add reusable button
+- [x] Add reusable text field
 - [x] Add EmptyState widget
 - [x] Add LoadingView widget
 - [x] Add ErrorView widget
 - [x] Add CircleCard widget
 - [x] Add Avatar widget
+- [x] Add CirclePulse visual system widget set
+- [x] Apply warm private-circle UI to auth, profile, Circles, Messages, Pulses, and Plans
 - [ ] Add responsive layout checks
-- [ ] Add friendly copywriting
+- [x] Add friendly copywriting
 
 ## Priority Backlog
 

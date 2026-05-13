@@ -72,8 +72,9 @@ lib/
       empty_state.dart
       loading_view.dart
       error_view.dart
-      app_button.dart
       app_text_field.dart
+      avatar.dart
+      circlepulse_ui.dart
     models/
     extensions/
 
@@ -183,6 +184,24 @@ Rules:
 - data can implement domain repository interfaces
 - domain should not import Flutter UI or Firebase directly
 - Firebase details should stay inside data layer
+
+## UI Structure
+
+The MVP UI uses Material 3 plus a small shared visual layer in
+`shared/widgets/circlepulse_ui.dart`.
+
+That layer owns:
+- warm CirclePulse colors
+- gradient app background through `WarmScaffold`
+- soft app bars and icon buttons
+- rounded private-card containers
+- the CirclePulse logo mark
+- the primary gradient action button
+- reusable privacy/info panels
+
+Feature screens still own their product layout and state wiring. Widgets do not
+call Firebase directly; screens continue to use Riverpod controllers and
+repositories for app behavior.
 
 ## Firebase Collections
 
