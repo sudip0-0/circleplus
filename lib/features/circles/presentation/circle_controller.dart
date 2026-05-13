@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/app_logger.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../profile/domain/app_user.dart';
 import '../../profile/presentation/profile_providers.dart';
@@ -56,6 +57,7 @@ class CircleController extends AsyncNotifier<void> {
       error: AsyncError<void>.new,
       loading: () => const AsyncLoading(),
     );
+    _logState('circle.create', {'name': name.trim()});
     return result.requireValue;
   }
 
@@ -72,6 +74,7 @@ class CircleController extends AsyncNotifier<void> {
       error: AsyncError<void>.new,
       loading: () => const AsyncLoading(),
     );
+    _logState('circle.join', {'inviteCode': inviteCode.trim().toUpperCase()});
     return result.requireValue;
   }
 
@@ -87,5 +90,13 @@ class CircleController extends AsyncNotifier<void> {
       throw StateError('Create your profile before using Circles.');
     }
     return profile;
+  }
+
+  void _logState(String event, [Map<String, Object?> details = const {}]) {
+    if (state.hasError) {
+      AppLogger.error(event, state.error!, details);
+      return;
+    }
+    AppLogger.success(event, details);
   }
 }

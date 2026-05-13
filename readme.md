@@ -161,6 +161,45 @@ await Firebase.initializeApp(
 Firebase Storage is not required for the current setup because media storage is
 planned for Cloudflare R2.
 
+## Cloudflare R2 Upload Signer
+
+The repo includes a Cloudflare Worker scaffold:
+
+```bash
+cd backend/r2-upload-worker
+npm install
+copy wrangler.toml.example wrangler.toml
+```
+
+Edit `wrangler.toml` with:
+
+```txt
+FIREBASE_PROJECT_ID
+R2_ACCOUNT_ID
+R2_BUCKET_NAME
+R2_PUBLIC_BASE_URL
+ALLOWED_ORIGIN
+```
+
+Set R2 secrets:
+
+```bash
+wrangler secret put R2_ACCESS_KEY_ID
+wrangler secret put R2_SECRET_ACCESS_KEY
+```
+
+Deploy:
+
+```bash
+npm run deploy
+```
+
+Run Flutter with the deployed Worker URL:
+
+```bash
+flutter run --dart-define=R2_UPLOAD_SIGNER_URL=https://your-worker-url
+```
+
 ## Recommended Folder Structure
 
 ```txt

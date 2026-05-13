@@ -21,13 +21,14 @@ class FirebasePulseRepository implements PulseRepository {
         .doc(circleId)
         .collection('pulses')
         .where('dateKey', isEqualTo: key)
-        .orderBy('createdAt')
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+        .map((snapshot) {
+          final pulses = snapshot.docs
               .map((doc) => PulseModel.fromMap(doc.data()))
-              .toList(),
-        );
+              .toList();
+          pulses.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+          return pulses;
+        });
   }
 
   @override

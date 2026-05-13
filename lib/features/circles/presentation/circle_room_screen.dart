@@ -26,7 +26,7 @@ class CircleRoomScreen extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: 'Members',
-            onPressed: () => context.go('/circles/$circleId/members'),
+            onPressed: () => context.push('/circles/$circleId/members'),
             icon: const Icon(Icons.people_outline),
           ),
         ],
@@ -104,7 +104,7 @@ class _PlansPreview extends ConsumerWidget {
                 ),
                 TextButton.icon(
                   onPressed: () =>
-                      context.go('/circles/$circleId/plans/create'),
+                      context.push('/circles/$circleId/plans/create'),
                   icon: const Icon(Icons.add),
                   label: const Text('Create'),
                 ),
@@ -113,7 +113,12 @@ class _PlansPreview extends ConsumerWidget {
             const SizedBox(height: 8),
             plans.when(
               loading: () => const LinearProgressIndicator(),
-              error: (error, stackTrace) => Text(error.toString()),
+              error: (error, stackTrace) => Text(
+                'Could not load plans. Please try again later.',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
               data: (items) {
                 if (items.isEmpty) {
                   return const Text('No active Plans yet.');

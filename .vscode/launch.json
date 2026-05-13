@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "CirclePulse (Debug)",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--dart-define=R2_UPLOAD_SIGNER_URL=https://circlepulse-r2-upload-worker.circleapp.workers.dev"
+      ]
+    },
+    {
+      "name": "CirclePulse (Profile)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "profile",
+      "args": [
+        "--dart-define=R2_UPLOAD_SIGNER_URL=https://circlepulse-r2-upload-worker.circleapp.workers.dev"
+      ]
+    }
+  ]
+}

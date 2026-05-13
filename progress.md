@@ -6,7 +6,7 @@ CirclePulse
 
 ## Current Stage
 
-Phase 3 in progress. Firebase initialization, Riverpod app scope, GoRouter routing, Authentication, Profile, Circles, text Messages, Pulse structure/wall, lightweight Plans, local Firestore rules, and private invite-code lookup are in place. Cloudflare R2 remains documented as the media storage provider, and photo uploads are intentionally blocked until a backend presigned URL endpoint exists.
+Phase 3 in progress. Firebase initialization, Riverpod app scope, GoRouter routing, Authentication, Profile, Circles, text/photo Messages, Pulse structure/wall, lightweight Plans, local Firestore rules, private invite-code lookup, a Cloudflare Worker R2 upload signer scaffold, and Pulse image upload wiring are in place. The R2 worker still needs project-specific secrets and deployment before real photo uploads work.
 
 ## Product Summary
 
@@ -84,7 +84,7 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [x] Implement real-time message stream
 - [x] Implement message composer
 - [x] Implement message list
-- [ ] Implement photo message upload
+- [x] Implement photo message upload
 - [x] Update Circle lastMessage fields
 - [x] Add empty message state
 
@@ -94,7 +94,7 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [x] Create PulseRepository
 - [x] Create date key utility
 - [x] Implement one Pulse per user per Circle per day
-- [ ] Implement photo upload for Pulse
+- [x] Implement photo upload for Pulse
 - [x] Implement optional caption
 - [x] Implement optional mood
 - [x] Build Today Pulse Card
@@ -132,10 +132,12 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [x] Ensure only Circle members can write messages
 - [x] Ensure users can only write their own Pulse
 - [x] Ensure users can only write their own Plan response
-- [ ] Protect R2 uploads through backend-generated presigned URLs
+- [x] Protect R2 uploads through backend-generated presigned URLs
 - [ ] Test basic access manually
 
 Firestore rules are configured locally in `firestore.rules` and referenced from `firebase.json`. They still need to be deployed and manually smoke-tested against the Firebase project.
+
+Firestore indexes are configured locally in `firestore.indexes.json`. The Home screen requires the collection-group index on `members.userId` for `collectionGroup('members').where('userId', ...)`.
 
 ### 10. Tests
 
@@ -233,7 +235,7 @@ These do not block MVP:
 - The app will use Firebase for MVP.
 - Media files will use Cloudflare R2, not Firebase Storage.
 - R2 credentials are kept out of Flutter and ignored through `.env`.
-- Photo uploads require a backend/serverless presigned URL endpoint before implementation.
+- Photo uploads require the backend/serverless presigned URL endpoint to be deployed before manual testing.
 - Authentication starts with email/password.
 - Groups are private by default.
 - Invite is by code in MVP.
@@ -247,6 +249,6 @@ These do not block MVP:
 
 Continue MVP implementation:
 
-1. deploy Firestore rules and smoke-test with two users
-2. add the backend/serverless presigned upload endpoint for R2 before enabling photo messages or Pulse posting
-3. implement notifications-ready FCM token storage
+1. deploy Firestore rules and the Cloudflare Worker upload signer
+2. smoke-test with two users, including Pulse and message photo upload
+3. polish Circle Room/Home layout after real-device testing

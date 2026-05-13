@@ -9,4 +9,11 @@ abstract interface class MessageRepository {
     required String text,
     required AppUser sender,
   });
+
+  Future<void> sendPhotoMessage({
+    required String circleId,
+    required String mediaUrl,
+    required String? text,
+    required AppUser sender,
+  });
 }

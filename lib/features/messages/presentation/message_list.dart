@@ -72,7 +72,33 @@ class _MessageBubble extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                 ],
-                Text(message.text ?? ''),
+                if (message.mediaUrl != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      message.mediaUrl!,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) {
+                          return child;
+                        }
+                        return const SizedBox(
+                          height: 160,
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return const SizedBox(
+                          height: 160,
+                          child: Center(child: Icon(Icons.broken_image)),
+                        );
+                      },
+                    ),
+                  ),
+                  if (message.text?.isNotEmpty == true)
+                    const SizedBox(height: 8),
+                ],
+                if (message.text?.isNotEmpty == true) Text(message.text!),
               ],
             ),
           ),

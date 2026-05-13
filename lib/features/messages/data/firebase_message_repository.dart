@@ -63,4 +63,46 @@ class FirebaseMessageRepository implements MessageRepository {
     });
     await batch.commit();
   }
+
+  @override
+  Future<void> sendPhotoMessage({
+    required String circleId,
+    required String mediaUrl,
+    required String? text,
+    required AppUser sender,
+  }) async {
+    final circleRef = _circles.doc(circleId);
+    final messageRef = circleRef.collection('messages').doc();
+    final now = DateTime.now();
+    final caption = _blankToNull(text);
+    final message = MessageModel(
+      id: messageRef.id,
+      circleId: circleId,
+      senderId: sender.id,
+      senderName: sender.displayName,
+      senderPhotoUrl: sender.photoUrl,
+      type: MessageType.photo,
+      text: caption,
+      mediaUrl: mediaUrl,
+      createdAt: now,
+      updatedAt: null,
+    );
+
+    final batch = _firestore.batch();
+    batch.set(messageRef, message.toMap());
+    batch.update(circleRef, {
+      'lastMessageText': caption ?? 'Photo',
+      'lastMessageAt': now,
+      'updatedAt': now,
+    });
+    await batch.commit();
+  }
+
+  String? _blankToNull(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      return null;
+    }
+    return trimmed;
+  }
 }

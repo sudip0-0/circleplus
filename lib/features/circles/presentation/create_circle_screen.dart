@@ -92,7 +92,7 @@ class _CreateCircleScreenState extends ConsumerState<CreateCircleScreen> {
           description: _descriptionController.text,
         );
     if (mounted && !ref.read(circleControllerProvider).hasError) {
-      context.go('/circles/${circle.id}');
+      context.pushReplacement('/circles/${circle.id}');
     }
   }
 

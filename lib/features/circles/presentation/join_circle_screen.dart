@@ -83,7 +83,7 @@ class _JoinCircleScreenState extends ConsumerState<JoinCircleScreen> {
         .read(circleControllerProvider.notifier)
         .joinCircleByInviteCode(_codeController.text);
     if (mounted && !ref.read(circleControllerProvider).hasError) {
-      context.go('/circles/${circle.id}');
+      context.pushReplacement('/circles/${circle.id}');
     }
   }
 

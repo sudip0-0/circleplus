@@ -142,7 +142,7 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
           startsAt: _startsAt,
         );
     if (mounted && !ref.read(planControllerProvider).hasError) {
-      context.go('/circles/${widget.circleId}/plans/${plan.id}');
+      context.pushReplacement('/circles/${widget.circleId}/plans/${plan.id}');
     }
   }
 

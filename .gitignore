@@ -44,4 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 .env
-firebase.json
+node_modules/
+.wrangler/
+backend/r2-upload-worker/wrangler.toml

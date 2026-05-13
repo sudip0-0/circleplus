@@ -13,7 +13,7 @@ class PlanCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: ListTile(
-        onTap: () => context.go('/circles/${plan.circleId}/plans/${plan.id}'),
+        onTap: () => context.push('/circles/${plan.circleId}/plans/${plan.id}'),
         title: Text(plan.title),
         subtitle: Text(
           [

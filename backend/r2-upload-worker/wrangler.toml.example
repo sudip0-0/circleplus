@@ -1,0 +1,14 @@
+name = "circlepulse-r2-upload-worker"
+main = "src/index.ts"
+compatibility_date = "2026-05-13"
+
+[vars]
+FIREBASE_PROJECT_ID = "circleapp-3d792"
+R2_ACCOUNT_ID = "your-cloudflare-account-id"
+R2_BUCKET_NAME = "your-r2-bucket-name"
+R2_PUBLIC_BASE_URL = "https://media.example.com"
+ALLOWED_ORIGIN = "http://localhost:3000"
+
+# Set secrets with:
+# wrangler secret put R2_ACCESS_KEY_ID
+# wrangler secret put R2_SECRET_ACCESS_KEY

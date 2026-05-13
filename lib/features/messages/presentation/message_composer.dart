@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'message_controller.dart';
 
@@ -14,6 +15,7 @@ class MessageComposer extends ConsumerStatefulWidget {
 
 class _MessageComposerState extends ConsumerState<MessageComposer> {
   final _controller = TextEditingController();
+  final _picker = ImagePicker();
 
   @override
   void dispose() {
@@ -39,6 +41,11 @@ class _MessageComposerState extends ConsumerState<MessageComposer> {
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
         child: Row(
           children: [
+            IconButton(
+              tooltip: 'Add photo',
+              onPressed: state.isLoading ? null : _pickAndSendPhoto,
+              icon: const Icon(Icons.add_photo_alternate_outlined),
+            ),
             Expanded(
               child: TextField(
                 controller: _controller,
@@ -80,5 +87,47 @@ class _MessageComposerState extends ConsumerState<MessageComposer> {
     if (!ref.read(messageControllerProvider).hasError) {
       _controller.clear();
     }
+  }
+
+  Future<void> _pickAndSendPhoto() async {
+    final image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 1600,
+    );
+    if (image == null) {
+      return;
+    }
+
+    final bytes = await image.readAsBytes();
+    await ref
+        .read(messageControllerProvider.notifier)
+        .uploadPhotoMessage(
+          circleId: widget.circleId,
+          bytes: bytes,
+          contentType: _contentTypeFor(image.name),
+          fileExtension: _extensionFor(image.name),
+          text: _controller.text,
+        );
+    if (!ref.read(messageControllerProvider).hasError) {
+      _controller.clear();
+    }
+  }
+
+  String _extensionFor(String fileName) {
+    final pieces = fileName.split('.');
+    if (pieces.length < 2) {
+      return 'jpg';
+    }
+    return pieces.last.toLowerCase();
+  }
+
+  String _contentTypeFor(String fileName) {
+    return switch (_extensionFor(fileName)) {
+      'png' => 'image/png',
+      'webp' => 'image/webp',
+      'gif' => 'image/gif',
+      _ => 'image/jpeg',
+    };
   }
 }

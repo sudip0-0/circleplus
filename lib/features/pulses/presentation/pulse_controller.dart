@@ -1,8 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/utils/app_logger.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../profile/domain/app_user.dart';
 import '../../profile/presentation/profile_providers.dart';
+import '../../../services/storage/storage_service.dart';
 import '../data/firebase_pulse_repository.dart';
 import '../domain/pulse.dart';
 import '../domain/pulse_repository.dart';
@@ -58,6 +62,40 @@ class PulseController extends AsyncNotifier<void> {
             mood: mood,
           );
     });
+    _logState('pulse.createOrUpdate', {'circleId': circleId});
+  }
+
+  Future<void> uploadPhotoAndCreatePulse({
+    required String circleId,
+    required List<int> bytes,
+    required String contentType,
+    required String fileExtension,
+    required String? caption,
+    required String? mood,
+  }) async {
+    final user = await _requireProfile();
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      final uploaded = await ref
+          .read(storageServiceProvider)
+          .uploadBytes(
+            type: StorageUploadType.pulsePhoto,
+            bytes: Uint8List.fromList(bytes),
+            contentType: contentType,
+            fileExtension: fileExtension,
+            circleId: circleId,
+          );
+      await ref
+          .read(pulseRepositoryProvider)
+          .createOrUpdatePulse(
+            circleId: circleId,
+            user: user,
+            photoUrl: uploaded.publicUrl,
+            caption: caption,
+            mood: mood,
+          );
+    });
+    _logState('pulse.uploadAndCreate', {'circleId': circleId});
   }
 
   Future<AppUser> _requireProfile() async {
@@ -72,5 +110,13 @@ class PulseController extends AsyncNotifier<void> {
       throw StateError('Create your profile before posting a Pulse.');
     }
     return profile;
+  }
+
+  void _logState(String event, [Map<String, Object?> details = const {}]) {
+    if (state.hasError) {
+      AppLogger.error(event, state.error!, details);
+      return;
+    }
+    AppLogger.success(event, details);
   }
 }

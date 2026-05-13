@@ -553,10 +553,41 @@ Circle rooms now show:
 - today's Pulse card and Pulse wall navigation
 - active Plans preview and create Plan action
 - real-time text messages
+- photo messages through the shared R2 upload path
 - message composer
 
 Photo message and Pulse photo creation remain blocked in the UI until a
 backend/serverless endpoint can return presigned Cloudflare R2 upload URLs.
+
+Pulse photo creation is wired through `StorageService`. It calls a configured
+R2 upload signer URL, uploads bytes to the returned presigned PUT URL, then
+stores the returned public URL in the Pulse document.
+
+## Upload Signer
+
+The repo includes a Cloudflare Worker scaffold at:
+
+```txt
+backend/r2-upload-worker
+```
+
+The Worker verifies Firebase ID tokens, signs Cloudflare R2 PUT URLs, and
+returns:
+
+```json
+{
+  "uploadUrl": "presigned put url",
+  "publicUrl": "public media url",
+  "objectKey": "r2 object key",
+  "method": "PUT"
+}
+```
+
+Flutter reads the signer URL from:
+
+```txt
+--dart-define=R2_UPLOAD_SIGNER_URL=https://your-worker-url
+```
 
 ## Pulse Date Key
 

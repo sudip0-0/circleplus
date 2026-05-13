@@ -22,7 +22,7 @@ class HomeScreen extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: 'Edit profile',
-            onPressed: () => context.go('/profile/edit'),
+            onPressed: () => context.push('/profile/edit'),
             icon: const Icon(Icons.person_outline),
           ),
           IconButton(
@@ -56,7 +56,7 @@ class HomeScreen extends ConsumerWidget {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.go('/circles/create'),
+        onPressed: () => context.push('/circles/create'),
         icon: const Icon(Icons.add),
         label: const Text('Create Circle'),
       ),
@@ -66,12 +66,12 @@ class HomeScreen extends ConsumerWidget {
   List<Widget> _homeActions(BuildContext context) {
     return [
       FilledButton.icon(
-        onPressed: () => context.go('/circles/create'),
+        onPressed: () => context.push('/circles/create'),
         icon: const Icon(Icons.add),
         label: const Text('Create Circle'),
       ),
       OutlinedButton.icon(
-        onPressed: () => context.go('/circles/join'),
+        onPressed: () => context.push('/circles/join'),
         icon: const Icon(Icons.group_add_outlined),
         label: const Text('Join with Code'),
       ),
@@ -88,7 +88,7 @@ class _CircleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: ListTile(
-        onTap: () => context.go('/circles/${circle.id}'),
+        onTap: () => context.push('/circles/${circle.id}'),
         title: Text(circle.name),
         subtitle: Text(
           circle.description?.isNotEmpty == true
