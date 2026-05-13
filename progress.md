@@ -6,7 +6,7 @@ CirclePulse
 
 ## Current Stage
 
-Phase 4 in progress. Firebase initialization, Riverpod app scope, GoRouter routing, Authentication, Profile, Circles, text/photo Messages, Pulse structure/wall, lightweight Plans, local Firestore rules, private invite-code lookup, a Cloudflare Worker R2 upload signer scaffold, and media upload wiring are in place. Current work is focused on integration hardening, deployment readiness, and a two-user MVP smoke test.
+Phase 4 in progress. Firebase initialization, Riverpod app scope, GoRouter routing, Authentication, Profile, Circles, bounded text/photo Messages, Pulse structure/wall/Home progress, lightweight Plans, local Firestore rules, private invite-code lookup, a Cloudflare Worker R2 upload signer scaffold, media upload wiring, avatar upload, and notification-ready FCM token storage are in place. Current work is focused on deployment readiness and a two-user MVP smoke test.
 
 ## Product Summary
 
@@ -58,7 +58,7 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [x] Create AppUser model
 - [x] Create ProfileRepository
 - [x] Build edit profile screen
-- [ ] Add avatar upload
+- [x] Add avatar upload
 - [x] Add display name validation
 - [x] Route user to profile setup if missing
 
@@ -83,6 +83,7 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [x] Create MessageRepository
 - [x] Implement text messages
 - [x] Implement real-time message stream
+- [x] Bound message stream to latest messages for MVP
 - [x] Implement message composer
 - [x] Implement message list
 - [x] Implement photo message upload
@@ -101,7 +102,7 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [x] Build Today Pulse Card
 - [x] Build Create Pulse Screen
 - [x] Build Pulse Wall Screen
-- [ ] Show Pulse progress on Home Screen
+- [x] Show Pulse progress on Home Screen
 - [x] Show Pulse progress inside Circle Room
 
 ### 7. Plans
@@ -119,8 +120,8 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 
 ### 8. Notifications
 
-- [ ] Request notification permission
-- [ ] Store FCM token
+- [x] Request notification permission
+- [x] Store FCM token
 - [x] Create placeholder notification service/repository abstractions
 - [ ] Prepare notification event types
 - [ ] Add placeholder for future Cloud Functions
@@ -135,8 +136,10 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [x] Ensure users can only write their own Plan response
 - [x] Require invite-code proof when creating non-creator Circle membership
 - [x] Prevent member-count increments outside invite-backed join commits
+- [x] Require Plan response counts to match response changes
 - [x] Protect R2 uploads through backend-generated presigned URLs
 - [x] Require Circle membership before signing Circle media uploads
+- [x] Confirm Firestore rules compile with Firebase CLI dry run
 - [ ] Test basic access manually
 
 Firestore rules are configured locally in `firestore.rules` and referenced from `firebase.json`. They still need to be deployed and manually smoke-tested against the Firebase project.
@@ -148,6 +151,7 @@ Firestore indexes are configured locally in `firestore.indexes.json`. The Home s
 - [x] Test Pulse date key generation
 - [x] Test invite code format
 - [x] Test model serialization
+- [x] Test media upload metadata helpers
 - [x] Test Plan response aggregation logic
 - [ ] Test auth routing logic
 
@@ -159,8 +163,8 @@ Firestore indexes are configured locally in `firestore.indexes.json`. The Home s
 - [x] Add EmptyState widget
 - [x] Add LoadingView widget
 - [x] Add ErrorView widget
-- [ ] Add CircleCard widget
-- [ ] Add Avatar widget
+- [x] Add CircleCard widget
+- [x] Add Avatar widget
 - [ ] Add responsive layout checks
 - [ ] Add friendly copywriting
 
@@ -264,9 +268,23 @@ Worker upload signer, then launching Flutter with `R2_UPLOAD_SIGNER_URL`.
 - [ ] Circle members can send and view a photo message
 - [ ] Circle members can upload today's Pulse
 - [ ] Circle members can view today's Pulse wall
+- [ ] Home shows truthful Pulse progress for each Circle
+- [ ] A user can upload and see a profile avatar
+- [ ] Notification permission can be requested and an FCM token is stored when available
 - [ ] Circle members can create a Plan
 - [ ] Circle members can respond to a Plan and see counts update
+- [ ] A member cannot directly manipulate Plan response counts without a matching response write
 - [ ] A signed-in non-member cannot read Circle messages, Pulses, Plans, or sign Circle media uploads
+
+Manual security checks still required because this repo does not yet include a
+Firebase Emulator rules test harness:
+
+- [ ] Signed-out reads to `users`, `circles`, Circle subcollections, and `inviteCodes` are denied
+- [ ] Signed-in exact `get` to a valid `inviteCodes/{code}` works, but list/query is denied
+- [ ] Signed-in non-member cannot create `circles/{circleId}/members/{uid}` without `inviteCodeUsed`
+- [ ] Signed-in non-member cannot read or write Circle messages, Pulses, Plans, or responses
+- [ ] Plan count-only writes are denied unless paired with the current user's response write
+- [ ] R2 signer denies Circle media signing for signed-in non-members
 
 ## Next Step
 

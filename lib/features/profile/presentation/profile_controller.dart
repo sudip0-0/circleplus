@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../services/storage/storage_service.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../domain/app_user.dart';
 import 'profile_providers.dart';
@@ -23,12 +26,24 @@ class ProfileController extends AsyncNotifier<void> {
     required AppUser currentProfile,
     required String displayName,
     required String? bio,
+    Uint8List? avatarBytes,
+    String? avatarContentType,
+    String? avatarFileExtension,
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final updated = currentProfile.copyWith(
+      final photoUrl = await _uploadAvatarIfNeeded(
+        avatarBytes: avatarBytes,
+        contentType: avatarContentType,
+        fileExtension: avatarFileExtension,
+      );
+      final updated = AppUser(
+        id: currentProfile.id,
         displayName: displayName.trim(),
+        email: currentProfile.email,
+        photoUrl: photoUrl ?? currentProfile.photoUrl,
         bio: _blankToNull(bio),
+        createdAt: currentProfile.createdAt,
         updatedAt: DateTime.now(),
       );
       await ref.read(profileRepositoryProvider).updateProfile(updated);
@@ -38,6 +53,9 @@ class ProfileController extends AsyncNotifier<void> {
   Future<void> createProfile({
     required String displayName,
     required String? bio,
+    Uint8List? avatarBytes,
+    String? avatarContentType,
+    String? avatarFileExtension,
   }) async {
     final user = ref.read(currentUserProvider);
     if (user == null) {
@@ -47,6 +65,11 @@ class ProfileController extends AsyncNotifier<void> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final now = DateTime.now();
+      final photoUrl = await _uploadAvatarIfNeeded(
+        avatarBytes: avatarBytes,
+        contentType: avatarContentType,
+        fileExtension: avatarFileExtension,
+      );
       await ref
           .read(profileRepositoryProvider)
           .createProfile(
@@ -54,13 +77,32 @@ class ProfileController extends AsyncNotifier<void> {
               id: user.id,
               displayName: displayName.trim(),
               email: user.email ?? '',
-              photoUrl: user.photoUrl,
+              photoUrl: photoUrl ?? user.photoUrl,
               bio: _blankToNull(bio),
               createdAt: now,
               updatedAt: now,
             ),
           );
     });
+  }
+
+  Future<String?> _uploadAvatarIfNeeded({
+    required Uint8List? avatarBytes,
+    required String? contentType,
+    required String? fileExtension,
+  }) async {
+    if (avatarBytes == null) {
+      return null;
+    }
+    return ref
+        .read(storageServiceProvider)
+        .uploadBytes(
+          type: StorageUploadType.avatar,
+          bytes: avatarBytes,
+          contentType: contentType ?? 'image/jpeg',
+          fileExtension: fileExtension ?? 'jpg',
+        )
+        .then((uploaded) => uploaded.publicUrl);
   }
 
   String? _blankToNull(String? value) {

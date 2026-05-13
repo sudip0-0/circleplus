@@ -1,8 +1,13 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
+import '../../../core/utils/media_type.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/avatar.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_view.dart';
 import '../../auth/presentation/auth_controller.dart';
@@ -19,6 +24,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _displayNameController = TextEditingController();
   final _bioController = TextEditingController();
+  final _picker = ImagePicker();
+  Uint8List? _avatarBytes;
+  String? _avatarFileName;
   bool _seeded = false;
 
   @override
@@ -60,7 +68,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               formKey: _formKey,
               displayNameController: _displayNameController,
               bioController: _bioController,
+              avatarBytes: _avatarBytes,
+              photoUrl: authUser.photoUrl,
               isLoading: controllerState.isLoading,
+              onPickAvatar: _pickAvatar,
               onSave: () async {
                 if (!_formKey.currentState!.validate()) {
                   return;
@@ -70,6 +81,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     .createProfile(
                       displayName: _displayNameController.text,
                       bio: _bioController.text,
+                      avatarBytes: _avatarBytes,
+                      avatarContentType: imageContentTypeForName(
+                        _avatarFileName,
+                      ),
+                      avatarFileExtension: fileExtensionForName(
+                        _avatarFileName,
+                      ),
                     );
                 if (context.mounted &&
                     !ref.read(profileControllerProvider).hasError) {
@@ -89,7 +107,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             formKey: _formKey,
             displayNameController: _displayNameController,
             bioController: _bioController,
+            avatarBytes: _avatarBytes,
+            photoUrl: user.photoUrl,
             isLoading: controllerState.isLoading,
+            onPickAvatar: _pickAvatar,
             onSave: () async {
               if (!_formKey.currentState!.validate()) {
                 return;
@@ -100,6 +121,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     currentProfile: user,
                     displayName: _displayNameController.text,
                     bio: _bioController.text,
+                    avatarBytes: _avatarBytes,
+                    avatarContentType: imageContentTypeForName(_avatarFileName),
+                    avatarFileExtension: fileExtensionForName(_avatarFileName),
                   );
               if (context.mounted &&
                   !ref.read(profileControllerProvider).hasError) {
@@ -119,6 +143,23 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     }
     return null;
   }
+
+  Future<void> _pickAvatar() async {
+    final image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 800,
+    );
+    if (image == null) {
+      return;
+    }
+
+    final bytes = await image.readAsBytes();
+    setState(() {
+      _avatarBytes = bytes;
+      _avatarFileName = image.name;
+    });
+  }
 }
 
 class _ProfileForm extends StatelessWidget {
@@ -126,7 +167,10 @@ class _ProfileForm extends StatelessWidget {
     required this.formKey,
     required this.displayNameController,
     required this.bioController,
+    required this.avatarBytes,
+    required this.photoUrl,
     required this.isLoading,
+    required this.onPickAvatar,
     required this.onSave,
     required this.validateDisplayName,
   });
@@ -134,7 +178,10 @@ class _ProfileForm extends StatelessWidget {
   final GlobalKey<FormState> formKey;
   final TextEditingController displayNameController;
   final TextEditingController bioController;
+  final Uint8List? avatarBytes;
+  final String? photoUrl;
   final bool isLoading;
+  final VoidCallback onPickAvatar;
   final Future<void> Function() onSave;
   final String? Function(String?) validateDisplayName;
 
@@ -151,6 +198,34 @@ class _ProfileForm extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  Center(
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        if (avatarBytes != null)
+                          CircleAvatar(
+                            radius: 44,
+                            backgroundImage: MemoryImage(avatarBytes!),
+                          )
+                        else
+                          Avatar(
+                            displayName: displayNameController.text,
+                            photoUrl: photoUrl,
+                            radius: 44,
+                          ),
+                        Positioned(
+                          right: -4,
+                          bottom: -4,
+                          child: IconButton.filled(
+                            tooltip: 'Choose avatar',
+                            onPressed: isLoading ? null : onPickAvatar,
+                            icon: const Icon(Icons.photo_camera_outlined),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   AppTextField(
                     controller: displayNameController,
                     label: 'Display name',

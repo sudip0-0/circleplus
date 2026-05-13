@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_view.dart';
+import '../../../shared/widgets/avatar.dart';
 import 'circle_controller.dart';
 
 class CircleMembersScreen extends ConsumerWidget {
@@ -34,12 +35,9 @@ class CircleMembersScreen extends ConsumerWidget {
             itemBuilder: (context, index) {
               final member = items[index];
               return ListTile(
-                leading: CircleAvatar(
-                  child: Text(
-                    member.displayName.isEmpty
-                        ? '?'
-                        : member.displayName.characters.first.toUpperCase(),
-                  ),
+                leading: Avatar(
+                  displayName: member.displayName,
+                  photoUrl: member.photoUrl,
                 ),
                 title: Text(member.displayName),
                 subtitle: Text(member.role.name),

@@ -14,17 +14,19 @@ class FirebaseMessageRepository implements MessageRepository {
       _firestore.collection('circles');
 
   @override
-  Stream<List<MessageModel>> watchMessages(String circleId) {
+  Stream<List<MessageModel>> watchMessages(String circleId, {int limit = 100}) {
     return _circles
         .doc(circleId)
         .collection('messages')
-        .orderBy('createdAt')
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+        .map((snapshot) {
+          final messages = snapshot.docs
               .map((doc) => MessageModel.fromMap(doc.data()))
-              .toList(),
-        );
+              .toList();
+          return messages.reversed.toList();
+        });
   }
 
   @override

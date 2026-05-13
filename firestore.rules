@@ -14,8 +14,16 @@ service cloud.firestore {
       return /databases/$(database)/documents/circles/$(circleId);
     }
 
+    function planPath(circleId, planId) {
+      return /databases/$(database)/documents/circles/$(circleId)/plans/$(planId);
+    }
+
     function memberPath(circleId, userId) {
       return /databases/$(database)/documents/circles/$(circleId)/members/$(userId);
+    }
+
+    function planResponsePath(circleId, planId, userId) {
+      return /databases/$(database)/documents/circles/$(circleId)/plans/$(planId)/responses/$(userId);
     }
 
     function inviteCodePath(code) {
@@ -39,6 +47,43 @@ service cloud.firestore {
 
     function validInviteCode(code) {
       return code.matches('^[A-Z0-9]{6}$');
+    }
+
+    function responseCountValue(response, value) {
+      return response == value ? 1 : 0;
+    }
+
+    function validPlanCountUpdate(circleId, planId) {
+      let responsePath = planResponsePath(circleId, planId, request.auth.uid);
+      let previousResponse = exists(responsePath) ? get(responsePath).data.response : '';
+      let nextResponse = getAfter(responsePath).data.response;
+      return isCircleMember(circleId)
+        && getAfter(responsePath).data.userId == request.auth.uid
+        && nextResponse in ['in', 'maybe', 'cant']
+        && request.resource.data.inCount == resource.data.inCount
+          + responseCountValue(nextResponse, 'in')
+          - responseCountValue(previousResponse, 'in')
+        && request.resource.data.maybeCount == resource.data.maybeCount
+          + responseCountValue(nextResponse, 'maybe')
+          - responseCountValue(previousResponse, 'maybe')
+        && request.resource.data.cantCount == resource.data.cantCount
+          + responseCountValue(nextResponse, 'cant')
+          - responseCountValue(previousResponse, 'cant');
+    }
+
+    function validPlanCountsAfterResponse(circleId, planId, userId) {
+      let responsePath = planResponsePath(circleId, planId, userId);
+      let previousResponse = exists(responsePath) ? get(responsePath).data.response : '';
+      let nextResponse = request.resource.data.response;
+      return getAfter(planPath(circleId, planId)).data.inCount == get(planPath(circleId, planId)).data.inCount
+          + responseCountValue(nextResponse, 'in')
+          - responseCountValue(previousResponse, 'in')
+        && getAfter(planPath(circleId, planId)).data.maybeCount == get(planPath(circleId, planId)).data.maybeCount
+          + responseCountValue(nextResponse, 'maybe')
+          - responseCountValue(previousResponse, 'maybe')
+        && getAfter(planPath(circleId, planId)).data.cantCount == get(planPath(circleId, planId)).data.cantCount
+          + responseCountValue(nextResponse, 'cant')
+          - responseCountValue(previousResponse, 'cant');
     }
 
     match /users/{userId} {
@@ -141,8 +186,8 @@ service cloud.firestore {
           && request.resource.data.createdBy == request.auth.uid
           && request.resource.data.status == 'active';
 
-        allow update: if isCircleMember(circleId)
-          && changedOnly(['inCount', 'maybeCount', 'cantCount', 'updatedAt']);
+        allow update: if changedOnly(['inCount', 'maybeCount', 'cantCount', 'updatedAt'])
+          && validPlanCountUpdate(circleId, planId);
 
         allow delete: if false;
 
@@ -152,7 +197,8 @@ service cloud.firestore {
           allow create, update: if isCircleMember(circleId)
             && isSelf(userId)
             && request.resource.data.userId == userId
-            && request.resource.data.response in ['in', 'maybe', 'cant'];
+            && request.resource.data.response in ['in', 'maybe', 'cant']
+            && validPlanCountsAfterResponse(circleId, planId, userId);
 
           allow delete: if false;
         }

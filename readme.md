@@ -150,6 +150,12 @@ Deploy Firestore rules after reviewing them:
 firebase deploy --only firestore:rules
 ```
 
+Deploy Firestore indexes as well:
+
+```bash
+firebase deploy --only firestore:indexes
+```
+
 Initialize Firebase in `main.dart`:
 
 ```dart
@@ -204,6 +210,12 @@ Run Flutter with the deployed Worker URL:
 ```bash
 flutter run --dart-define=R2_UPLOAD_SIGNER_URL=https://your-worker-url
 ```
+
+## Notifications
+
+The MVP requests notification permission after sign-in and stores an FCM token
+on the current user document when the platform can provide one. Push delivery
+through Cloud Functions is intentionally not part of the current MVP.
 
 ## Recommended Folder Structure
 

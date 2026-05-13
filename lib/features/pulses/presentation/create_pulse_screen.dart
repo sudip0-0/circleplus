@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/utils/media_type.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import 'pulse_controller.dart';
 
@@ -145,8 +146,8 @@ class _CreatePulseScreenState extends ConsumerState<CreatePulseScreen> {
         .uploadPhotoAndCreatePulse(
           circleId: widget.circleId,
           bytes: bytes,
-          contentType: _contentTypeFor(image.name),
-          fileExtension: _extensionFor(image.name),
+          contentType: imageContentTypeForName(image.name),
+          fileExtension: fileExtensionForName(image.name),
           caption: _captionController.text,
           mood: _moodController.text,
         );
@@ -154,22 +155,5 @@ class _CreatePulseScreenState extends ConsumerState<CreatePulseScreen> {
     if (mounted && !ref.read(pulseControllerProvider).hasError) {
       context.pushReplacement('/circles/${widget.circleId}/pulses');
     }
-  }
-
-  String _extensionFor(String fileName) {
-    final pieces = fileName.split('.');
-    if (pieces.length < 2) {
-      return 'jpg';
-    }
-    return pieces.last.toLowerCase();
-  }
-
-  String _contentTypeFor(String fileName) {
-    return switch (_extensionFor(fileName)) {
-      'png' => 'image/png',
-      'webp' => 'image/webp',
-      'gif' => 'image/gif',
-      _ => 'image/jpeg',
-    };
   }
 }

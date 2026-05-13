@@ -6,14 +6,40 @@ import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_view.dart';
 import '../../auth/presentation/auth_controller.dart';
+import '../../notifications/presentation/notification_controller.dart';
+import '../../pulses/presentation/pulse_controller.dart';
 import '../domain/circle.dart';
 import 'circle_controller.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _requestedNotifications = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_requestedNotifications) {
+      return;
+    }
+    _requestedNotifications = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      ref
+          .read(notificationControllerProvider.notifier)
+          .requestPermissionAndSyncToken();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final circles = ref.watch(userCirclesProvider);
 
     return Scaffold(
@@ -50,7 +76,7 @@ class HomeScreen extends ConsumerWidget {
             itemCount: items.length,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              return _CircleCard(circle: items[index]);
+              return CircleCard(circle: items[index]);
             },
           );
         },
@@ -79,8 +105,8 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _CircleCard extends StatelessWidget {
-  const _CircleCard({required this.circle});
+class CircleCard extends StatelessWidget {
+  const CircleCard({required this.circle, super.key});
 
   final CircleModel circle;
 
@@ -90,13 +116,51 @@ class _CircleCard extends StatelessWidget {
       child: ListTile(
         onTap: () => context.push('/circles/${circle.id}'),
         title: Text(circle.name),
-        subtitle: Text(
-          circle.description?.isNotEmpty == true
-              ? circle.description!
-              : '${circle.memberCount} member${circle.memberCount == 1 ? '' : 's'}',
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              circle.description?.isNotEmpty == true
+                  ? circle.description!
+                  : '${circle.memberCount} member${circle.memberCount == 1 ? '' : 's'}',
+            ),
+            const SizedBox(height: 4),
+            _HomePulseProgress(circle: circle),
+          ],
         ),
         trailing: const Icon(Icons.chevron_right),
       ),
+    );
+  }
+}
+
+class _HomePulseProgress extends ConsumerWidget {
+  const _HomePulseProgress({required this.circle});
+
+  final CircleModel circle;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pulses = ref.watch(todayPulsesProvider(circle.id));
+    final myPulse = ref.watch(myTodayPulseProvider(circle.id));
+
+    return pulses.when(
+      loading: () => const Text('Checking today\'s Pulses...'),
+      error: (error, stackTrace) => Text(
+        'Pulse status unavailable',
+        style: TextStyle(color: Theme.of(context).colorScheme.error),
+      ),
+      data: (items) {
+        final posted = myPulse.maybeWhen(
+          data: (pulse) => pulse != null,
+          orElse: () => false,
+        );
+        final total = circle.memberCount <= 0
+            ? items.length
+            : circle.memberCount;
+        final status = posted ? 'You posted' : 'Post yours';
+        return Text('Pulses today: ${items.length}/$total - $status');
+      },
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../shared/widgets/avatar.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_view.dart';
@@ -122,13 +123,9 @@ class PlanDetailScreen extends ConsumerWidget {
                   return Column(
                     children: items.map((response) {
                       return ListTile(
-                        leading: CircleAvatar(
-                          child: Text(
-                            response.userName.isEmpty
-                                ? '?'
-                                : response.userName.characters.first
-                                      .toUpperCase(),
-                          ),
+                        leading: Avatar(
+                          displayName: response.userName,
+                          photoUrl: response.userPhotoUrl,
                         ),
                         title: Text(response.userName),
                         subtitle: Text(response.response.firestoreValue),

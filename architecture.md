@@ -59,6 +59,7 @@ lib/
     utils/
       date_key.dart
       invite_code_generator.dart
+      media_type.dart
 
   routing/
     app_router.dart
@@ -163,6 +164,8 @@ lib/
         firebase_notification_repository.dart
       domain/
         notification_repository.dart
+      presentation/
+        notification_controller.dart
 
   services/
     notifications/
@@ -201,7 +204,9 @@ Fields:
   "photoUrl": null,
   "bio": null,
   "createdAt": "serverTimestamp",
-  "updatedAt": "serverTimestamp"
+  "updatedAt": "serverTimestamp",
+  "fcmTokens": [],
+  "fcmTokenUpdatedAt": "timestamp"
 }
 ```
 
@@ -210,6 +215,7 @@ Purpose:
 - display name
 - avatar
 - basic profile
+- notification-ready FCM token storage
 
 ### circles
 
@@ -443,10 +449,9 @@ CirclePulse uses Cloudflare R2 for media storage instead of Firebase Storage.
 R2 credentials must never be shipped in the Flutter app. They may live in a
 local `.env` file for backend/serverless development only.
 
-The Flutter app should upload media through a backend or serverless endpoint
-that returns presigned upload URLs. Until that endpoint exists, media upload
-features should depend on the `StorageService` abstraction and remain
-unimplemented behind the service boundary.
+The Flutter app uploads media through a backend or serverless endpoint that
+returns presigned upload URLs. Media features depend on the `StorageService`
+abstraction and never access R2 credentials directly.
 
 ## Navigation Flow
 
@@ -530,6 +535,9 @@ circleMessagesProvider(circleId)
 messageControllerProvider
 ```
 
+Messages are streamed from the latest bounded query and rendered oldest to
+newest in the UI to avoid loading unlimited history during the MVP.
+
 ### Pulse Providers
 
 ```txt
@@ -559,6 +567,9 @@ Circle rooms now show:
 - real-time text messages
 - photo messages through the shared R2 upload path
 - message composer
+
+Home now shows lightweight per-Circle Pulse progress using today's Pulse count
+against the Circle member count, plus whether the current user has posted.
 
 Photo message and Pulse photo creation are wired through `StorageService`.
 When `R2_UPLOAD_SIGNER_URL` is configured, the app requests a presigned
@@ -659,13 +670,12 @@ For MVP, prepare:
 - notification service interface
 - permission request flow
 
-Possible user document addition:
+Implemented user document addition:
 
 ```json
 {
-  "fcmTokens": {
-    "tokenValue": true
-  }
+  "fcmTokens": ["tokenValue"],
+  "fcmTokenUpdatedAt": "timestamp"
 }
 ```
 
@@ -691,6 +701,8 @@ Required protections:
 - users can only post as themselves
 - users can only create/update their own Pulse
 - users can only create/update their own Plan response
+- Plan response count updates must match the user's previous and next response
+  in the same commit
 - invite-code lookup allows exact signed-in `get` requests but blocks list scans
 
 R2 access must be protected by the upload-signing backend. Firestore rules can
