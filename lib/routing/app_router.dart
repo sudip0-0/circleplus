@@ -1,9 +1,19 @@
-import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../features/auth/presentation/sign_in_screen.dart';
 
-class AppRouter {
-  const AppRouter._();
+class AppRoutes {
+  const AppRoutes._();
 
-  static Widget get initialScreen => const SignInScreen();
+  static const signIn = '/sign-in';
 }
+
+final appRouter = GoRouter(
+  initialLocation: AppRoutes.signIn,
+  routes: [
+    GoRoute(
+      path: AppRoutes.signIn,
+      builder: (context, state) => const SignInScreen(),
+    ),
+  ],
+);

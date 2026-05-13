@@ -53,7 +53,7 @@ Use:
 - Dart
 - Firebase Auth
 - Cloud Firestore
-- Firebase Storage
+- Cloudflare R2 for media storage through backend-generated presigned URLs
 - Firebase Cloud Messaging-ready structure
 - Riverpod
 - GoRouter
@@ -160,7 +160,7 @@ Use Firestore Timestamp handling carefully.
 
 Prefer immutable models.
 
-## Firebase Rules
+## Firebase And Storage Rules
 
 Keep direct Firebase calls out of widgets.
 
@@ -171,6 +171,9 @@ Correct:
 
 Incorrect:
 - Widget directly calls FirebaseFirestore.instance
+
+Do not put Cloudflare R2 credentials in the Flutter app. Media uploads must go
+through a backend or serverless endpoint that returns presigned upload URLs.
 
 ## State Management Rules
 

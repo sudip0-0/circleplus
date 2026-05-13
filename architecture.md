@@ -10,6 +10,7 @@ The architecture should support:
 - daily photo updates
 - lightweight meetup planning
 - scalable but simple Firebase backend
+- Cloudflare R2 media storage through a backend upload endpoint
 - Flutter UI with clean state management
 
 ## System Overview
@@ -28,11 +29,12 @@ Flutter App
   |     |-- plans
   |     |-- responses
   |
-  |-- Firebase Storage
+  |-- Cloudflare R2
   |     |-- avatars
   |     |-- circle covers
   |     |-- message photos
   |     |-- pulse photos
+  |     |-- uploads must use backend-generated presigned URLs
   |
   |-- Firebase Cloud Messaging
         |-- notifications for messages, pulses, plans
@@ -396,7 +398,7 @@ Purpose:
 - event voting
 - social coordination
 
-## Firebase Storage Paths
+## Media Storage
 
 ```txt
 users/{userId}/avatar.jpg
@@ -407,6 +409,15 @@ circles/{circleId}/messages/{messageId}.jpg
 
 circles/{circleId}/pulses/{dateKey}_{userId}.jpg
 ```
+
+CirclePulse uses Cloudflare R2 for media storage instead of Firebase Storage.
+R2 credentials must never be shipped in the Flutter app. They may live in a
+local `.env` file for backend/serverless development only.
+
+The Flutter app should upload media through a backend or serverless endpoint
+that returns presigned upload URLs. Until that endpoint exists, media upload
+features should depend on the `StorageService` abstraction and remain
+unimplemented behind the service boundary.
 
 ## Navigation Flow
 
@@ -589,6 +600,9 @@ Required protections:
 - users can only post as themselves
 - users can only create/update their own Pulse
 - users can only create/update their own Plan response
+
+R2 access must be protected by the upload-signing backend. Firestore rules can
+protect stored object keys and URLs, but they cannot protect R2 credentials.
 
 ## Performance Notes
 

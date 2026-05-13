@@ -6,7 +6,7 @@ CirclePulse
 
 ## Current Stage
 
-Phase 1 started. Initial Flutter app shell and clean folder structure are in place.
+Phase 1 in progress. Firebase initialization, Riverpod app scope, GoRouter shell, clean folder structure, MVP dependencies, and the Cloudflare R2 storage decision are in place.
 
 ## Product Summary
 
@@ -26,14 +26,20 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 ### 1. Project Setup
 
 - [x] Create Flutter project
-- [ ] Add Firebase dependencies
-- [ ] Add Riverpod
-- [ ] Add GoRouter
-- [ ] Add image picker
-- [ ] Add Firebase config
+- [x] Add Firebase dependencies
+- [x] Add Riverpod
+- [x] Add GoRouter
+- [x] Add image picker
+- [x] Add Intl
+- [x] Add Firebase config
+- [x] Confirm Cloudflare R2 as media storage provider
+- [ ] Add backend/serverless endpoint for R2 presigned uploads
 - [x] Create folder structure
 - [x] Add app theme
 - [x] Add router shell
+- [x] Initialize Firebase in app entry
+- [x] Add Riverpod ProviderScope
+- [x] Wire router shell to GoRouter
 
 ### 2. Authentication
 
@@ -126,7 +132,7 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [ ] Ensure only Circle members can write messages
 - [ ] Ensure users can only write their own Pulse
 - [ ] Ensure users can only write their own Plan response
-- [ ] Write Firebase Storage rules
+- [ ] Protect R2 uploads through backend-generated presigned URLs
 - [ ] Test basic access manually
 
 ### 10. Tests
@@ -223,6 +229,9 @@ These do not block MVP:
 ## Current Assumptions
 
 - The app will use Firebase for MVP.
+- Media files will use Cloudflare R2, not Firebase Storage.
+- R2 credentials are kept out of Flutter and ignored through `.env`.
+- Photo uploads require a backend/serverless presigned URL endpoint before implementation.
 - Authentication starts with email/password.
 - Groups are private by default.
 - Invite is by code in MVP.
@@ -236,10 +245,5 @@ These do not block MVP:
 
 Continue Phase 1 setup:
 
-1. add Firebase dependencies
-2. add Riverpod
-3. add GoRouter
-4. add image picker
-5. configure Firebase
-6. wire router to GoRouter
-7. implement auth flow first
+1. decide where the R2 presigned upload endpoint will live
+2. implement auth flow first

@@ -73,7 +73,7 @@ Members can respond:
 - Dart
 - Firebase Authentication
 - Cloud Firestore
-- Firebase Storage
+- Cloudflare R2 for media storage
 - Firebase Cloud Messaging-ready structure
 - Riverpod
 - GoRouter
@@ -111,9 +111,17 @@ cd circlepulse
 Add dependencies:
 
 ```bash
-flutter pub add firebase_core firebase_auth cloud_firestore firebase_storage firebase_messaging
+flutter pub add firebase_core firebase_auth cloud_firestore firebase_messaging
 flutter pub add flutter_riverpod go_router image_picker intl uuid cached_network_image
 ```
+
+Current MVP storage decision:
+
+- Use Cloudflare R2 instead of Firebase Storage.
+- Do not put R2 access keys in the Flutter app.
+- Keep R2 credentials in `.env` for backend/serverless work only.
+- Add a backend or serverless endpoint later to create presigned upload URLs.
+- Store media object keys or URLs in Firestore after upload.
 
 Optional dependencies:
 
@@ -143,6 +151,9 @@ await Firebase.initializeApp(
   options: DefaultFirebaseOptions.currentPlatform,
 );
 ```
+
+Firebase Storage is not required for the current setup because media storage is
+planned for Cloudflare R2.
 
 ## Recommended Folder Structure
 

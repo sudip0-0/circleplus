@@ -59,7 +59,7 @@ Use:
 - Dart
 - Firebase Authentication
 - Cloud Firestore
-- Firebase Storage
+- Cloudflare R2 for media storage through backend-generated presigned URLs
 - Firebase Cloud Messaging
 - Riverpod for state management
 - GoRouter for navigation
@@ -210,7 +210,7 @@ circles/{circleId}/plans/{planId}/responses/{userId}
 
 ## Storage Design
 
-Recommended Firebase Storage paths:
+Recommended Cloudflare R2 object paths:
 
 ```txt
 users/{userId}/avatar.jpg
@@ -221,6 +221,10 @@ circles/{circleId}/messages/{messageId}.jpg
 
 circles/{circleId}/pulses/{yyyyMMdd_userId}.jpg
 ```
+
+Do not put R2 credentials in the Flutter app. Use a backend or serverless
+endpoint to create presigned upload URLs, then store uploaded media object keys
+or URLs in Firestore.
 
 ## UX Direction
 

@@ -8,11 +8,11 @@ class CirclePulseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'CirclePulse',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: AppRouter.initialScreen,
+      routerConfig: appRouter,
     );
   }
 }
