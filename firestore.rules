@@ -1,0 +1,140 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function circlePath(circleId) {
+      return /databases/$(database)/documents/circles/$(circleId);
+    }
+
+    function memberPath(circleId, userId) {
+      return /databases/$(database)/documents/circles/$(circleId)/members/$(userId);
+    }
+
+    function isCircleMember(circleId) {
+      return signedIn() && exists(memberPath(circleId, request.auth.uid));
+    }
+
+    function changedOnly(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    function validInviteCode(code) {
+      return code.matches('^[A-Z0-9]{6}$');
+    }
+
+    match /users/{userId} {
+      allow read: if isSelf(userId);
+
+      allow create: if isSelf(userId)
+        && request.resource.data.id == userId;
+
+      allow update: if isSelf(userId)
+        && request.resource.data.id == userId;
+
+      allow delete: if false;
+    }
+
+    match /inviteCodes/{code} {
+      allow get: if signedIn() && validInviteCode(code);
+      allow list: if false;
+
+      allow create: if signedIn()
+        && validInviteCode(code)
+        && request.resource.data.code == code
+        && request.resource.data.createdBy == request.auth.uid
+        && getAfter(circlePath(request.resource.data.circleId)).data.createdBy == request.auth.uid;
+
+      allow update, delete: if false;
+    }
+
+    match /circles/{circleId} {
+      allow read: if isCircleMember(circleId);
+
+      allow create: if signedIn()
+        && request.resource.data.id == circleId
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.memberCount == 1;
+
+      allow update: if (
+          signedIn()
+          && changedOnly(['memberCount', 'updatedAt'])
+          && request.resource.data.memberCount == resource.data.memberCount + 1
+        ) || (
+          isCircleMember(circleId)
+          && changedOnly(['lastMessageText', 'lastMessageAt', 'updatedAt'])
+        );
+
+      allow delete: if false;
+
+      match /members/{userId} {
+        allow read: if isCircleMember(circleId);
+
+        allow create: if isSelf(userId)
+          && request.resource.data.userId == userId
+          && request.resource.data.circleId == circleId
+          && request.resource.data.role in ['creator', 'member'];
+
+        allow update, delete: if false;
+      }
+
+      match /messages/{messageId} {
+        allow read: if isCircleMember(circleId);
+
+        allow create: if isCircleMember(circleId)
+          && request.resource.data.id == messageId
+          && request.resource.data.circleId == circleId
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.type in ['text', 'photo', 'system'];
+
+        allow update, delete: if false;
+      }
+
+      match /pulses/{pulseId} {
+        allow read: if isCircleMember(circleId);
+
+        allow create, update: if isCircleMember(circleId)
+          && request.resource.data.id == pulseId
+          && request.resource.data.circleId == circleId
+          && request.resource.data.userId == request.auth.uid
+          && pulseId.matches('^[0-9]{8}_' + request.auth.uid + '$');
+
+        allow delete: if isCircleMember(circleId)
+          && resource.data.userId == request.auth.uid;
+      }
+
+      match /plans/{planId} {
+        allow read: if isCircleMember(circleId);
+
+        allow create: if isCircleMember(circleId)
+          && request.resource.data.id == planId
+          && request.resource.data.circleId == circleId
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.status == 'active';
+
+        allow update: if isCircleMember(circleId)
+          && changedOnly(['inCount', 'maybeCount', 'cantCount', 'updatedAt']);
+
+        allow delete: if false;
+
+        match /responses/{userId} {
+          allow read: if isCircleMember(circleId);
+
+          allow create, update: if isCircleMember(circleId)
+            && isSelf(userId)
+            && request.resource.data.userId == userId
+            && request.resource.data.response in ['in', 'maybe', 'cant'];
+
+          allow delete: if false;
+        }
+      }
+    }
+  }
+}

@@ -6,7 +6,7 @@ CirclePulse
 
 ## Current Stage
 
-Phase 3 in progress. Firebase initialization, Riverpod app scope, GoRouter routing, Authentication, Profile, Circles, text Messages, Pulse structure/wall, and lightweight Plans are in place. Cloudflare R2 remains documented as the media storage provider, and photo uploads are intentionally blocked until a backend presigned URL endpoint exists.
+Phase 3 in progress. Firebase initialization, Riverpod app scope, GoRouter routing, Authentication, Profile, Circles, text Messages, Pulse structure/wall, lightweight Plans, local Firestore rules, and private invite-code lookup are in place. Cloudflare R2 remains documented as the media storage provider, and photo uploads are intentionally blocked until a backend presigned URL endpoint exists.
 
 ## Product Summary
 
@@ -126,16 +126,16 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 
 ### 9. Firebase Security
 
-- [ ] Write Firestore rules
-- [ ] Ensure only authenticated users can access app data
-- [ ] Ensure only Circle members can read Circle content
-- [ ] Ensure only Circle members can write messages
-- [ ] Ensure users can only write their own Pulse
-- [ ] Ensure users can only write their own Plan response
+- [x] Write Firestore rules
+- [x] Ensure only authenticated users can access app data
+- [x] Ensure only Circle members can read Circle content
+- [x] Ensure only Circle members can write messages
+- [x] Ensure users can only write their own Pulse
+- [x] Ensure users can only write their own Plan response
 - [ ] Protect R2 uploads through backend-generated presigned URLs
 - [ ] Test basic access manually
 
-No Firestore rules file is currently configured in the repo. Membership-based rules remain a required next step before production use.
+Firestore rules are configured locally in `firestore.rules` and referenced from `firebase.json`. They still need to be deployed and manually smoke-tested against the Firebase project.
 
 ### 10. Tests
 
@@ -247,6 +247,6 @@ These do not block MVP:
 
 Continue MVP implementation:
 
-1. add Firestore security rules for users and Circle membership
+1. deploy Firestore rules and smoke-test with two users
 2. add the backend/serverless presigned upload endpoint for R2 before enabling photo messages or Pulse posting
-3. implement notifications-ready FCM token storage when security rules are in place
+3. implement notifications-ready FCM token storage

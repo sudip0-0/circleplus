@@ -23,6 +23,7 @@ Flutter App
   |-- Cloud Firestore
   |     |-- users
   |     |-- circles
+  |     |-- inviteCodes
   |     |-- members
   |     |-- messages
   |     |-- pulses
@@ -238,6 +239,29 @@ Purpose:
 - private group metadata
 - invite code
 - home screen card data
+
+### invite codes
+
+Path:
+
+```txt
+inviteCodes/{inviteCode}
+```
+
+Fields:
+
+```json
+{
+  "code": "AB12CD",
+  "circleId": "circleId",
+  "createdBy": "userId",
+  "createdAt": "serverTimestamp"
+}
+```
+
+Purpose:
+- resolve exact invite codes without making all Circle metadata readable
+- prevent invite code collisions during Circle creation
 
 ### circle members
 
@@ -566,8 +590,9 @@ String pulseDateKey(DateTime date) {
 For MVP:
 - generate 6-character uppercase alphanumeric code
 - store in Circle document
-- query circles by inviteCode
-- prevent duplicate code if possible
+- store a matching `inviteCodes/{code}` lookup document
+- join by reading the exact invite code document, then adding membership
+- prevent duplicate codes before Circle creation
 
 Example:
 ```txt
@@ -623,6 +648,7 @@ Required protections:
 - users can only post as themselves
 - users can only create/update their own Pulse
 - users can only create/update their own Plan response
+- invite-code lookup allows exact signed-in `get` requests but blocks list scans
 
 R2 access must be protected by the upload-signing backend. Firestore rules can
 protect stored object keys and URLs, but they cannot protect R2 credentials.

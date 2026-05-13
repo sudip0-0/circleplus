@@ -144,6 +144,12 @@ Configure Firebase:
 flutterfire configure
 ```
 
+Deploy Firestore rules after reviewing them:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
 Initialize Firebase in `main.dart`:
 
 ```dart
@@ -224,6 +230,8 @@ User opens app
 users/{userId}
 
 circles/{circleId}
+
+inviteCodes/{inviteCode}
 
 circles/{circleId}/members/{userId}
 

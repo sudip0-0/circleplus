@@ -16,6 +16,9 @@ class FirebaseCircleRepository implements CircleRepository {
   CollectionReference<Map<String, dynamic>> get _circles =>
       _firestore.collection('circles');
 
+  CollectionReference<Map<String, dynamic>> get _inviteCodes =>
+      _firestore.collection('inviteCodes');
+
   @override
   Future<CircleModel> createCircle({
     required String name,
@@ -50,6 +53,12 @@ class FirebaseCircleRepository implements CircleRepository {
     final batch = _firestore.batch();
     batch.set(circleRef, circle.toMap());
     batch.set(circleRef.collection('members').doc(creator.id), member.toMap());
+    batch.set(_inviteCodes.doc(inviteCode), {
+      'code': inviteCode,
+      'circleId': circle.id,
+      'createdBy': creator.id,
+      'createdAt': now,
+    });
     await batch.commit();
 
     return circle;
@@ -65,15 +74,14 @@ class FirebaseCircleRepository implements CircleRepository {
       throw const AppException('Enter a valid 6-character invite code.');
     }
 
-    final query = await _circles
-        .where('inviteCode', isEqualTo: normalizedCode)
-        .limit(1)
-        .get();
-    if (query.docs.isEmpty) {
+    final inviteSnapshot = await _inviteCodes.doc(normalizedCode).get();
+    final inviteData = inviteSnapshot.data();
+    final circleId = inviteData?['circleId'] as String?;
+    if (!inviteSnapshot.exists || circleId == null) {
       throw const AppException('No Circle found for that invite code.');
     }
 
-    final circleRef = query.docs.first.reference;
+    final circleRef = _circles.doc(circleId);
     final memberRef = circleRef.collection('members').doc(user.id);
 
     await _firestore.runTransaction((transaction) async {
@@ -158,11 +166,8 @@ class FirebaseCircleRepository implements CircleRepository {
   Future<String> _createUniqueInviteCode() async {
     for (var attempt = 0; attempt < 5; attempt++) {
       final code = generateInviteCode();
-      final existing = await _circles
-          .where('inviteCode', isEqualTo: code)
-          .limit(1)
-          .get();
-      if (existing.docs.isEmpty) {
+      final existing = await _inviteCodes.doc(code).get();
+      if (!existing.exists) {
         return code;
       }
     }
