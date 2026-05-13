@@ -102,6 +102,7 @@ lib/
         app_user.dart
         profile_repository.dart
       presentation/
+        profile_providers.dart
         edit_profile_screen.dart
         profile_controller.dart
 
@@ -445,7 +446,7 @@ App Start
 
 ## Routing
 
-Recommended routes:
+Implemented routes:
 
 ```txt
 /sign-in
@@ -456,6 +457,11 @@ Recommended routes:
 /circles/join
 /circles/:circleId
 /circles/:circleId/members
+```
+
+Planned later routes:
+
+```txt
 /circles/:circleId/pulse/create
 /circles/:circleId/pulses
 /circles/:circleId/plans/create
@@ -472,6 +478,15 @@ Use Riverpod providers.
 authRepositoryProvider
 authStateProvider
 currentUserProvider
+authControllerProvider
+```
+
+### Profile Providers
+
+```txt
+profileRepositoryProvider
+currentUserProfileProvider
+profileControllerProvider
 ```
 
 ### Circle Providers
@@ -481,6 +496,7 @@ circleRepositoryProvider
 userCirclesProvider
 circleProvider(circleId)
 circleMembersProvider(circleId)
+circleControllerProvider
 ```
 
 ### Message Providers

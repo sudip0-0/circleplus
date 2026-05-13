@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 
 class EmptyState extends StatelessWidget {
-  const EmptyState({required this.title, required this.message, super.key});
+  const EmptyState({
+    required this.title,
+    required this.message,
+    this.actions = const [],
+    super.key,
+  });
 
   final String title;
   final String message;
+  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +33,15 @@ class EmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: textTheme.bodyLarge,
             ),
+            if (actions.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: actions,
+              ),
+            ],
           ],
         ),
       ),
