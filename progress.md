@@ -6,7 +6,7 @@ CirclePulse
 
 ## Current Stage
 
-Phase 3 in progress. Firebase initialization, Riverpod app scope, GoRouter routing, Authentication, Profile, Circles, text/photo Messages, Pulse structure/wall, lightweight Plans, local Firestore rules, private invite-code lookup, a Cloudflare Worker R2 upload signer scaffold, and Pulse image upload wiring are in place. The R2 worker still needs project-specific secrets and deployment before real photo uploads work.
+Phase 4 in progress. Firebase initialization, Riverpod app scope, GoRouter routing, Authentication, Profile, Circles, text/photo Messages, Pulse structure/wall, lightweight Plans, local Firestore rules, private invite-code lookup, a Cloudflare Worker R2 upload signer scaffold, and media upload wiring are in place. Current work is focused on integration hardening, deployment readiness, and a two-user MVP smoke test.
 
 ## Product Summary
 
@@ -33,7 +33,8 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [x] Add Intl
 - [x] Add Firebase config
 - [x] Confirm Cloudflare R2 as media storage provider
-- [ ] Add backend/serverless endpoint for R2 presigned uploads
+- [x] Add backend/serverless scaffold for R2 presigned uploads
+- [ ] Deploy configured R2 presigned upload endpoint
 - [x] Create folder structure
 - [x] Add app theme
 - [x] Add router shell
@@ -120,7 +121,7 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 
 - [ ] Request notification permission
 - [ ] Store FCM token
-- [ ] Create notification service abstraction
+- [x] Create placeholder notification service/repository abstractions
 - [ ] Prepare notification event types
 - [ ] Add placeholder for future Cloud Functions
 
@@ -132,7 +133,10 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [x] Ensure only Circle members can write messages
 - [x] Ensure users can only write their own Pulse
 - [x] Ensure users can only write their own Plan response
+- [x] Require invite-code proof when creating non-creator Circle membership
+- [x] Prevent member-count increments outside invite-backed join commits
 - [x] Protect R2 uploads through backend-generated presigned URLs
+- [x] Require Circle membership before signing Circle media uploads
 - [ ] Test basic access manually
 
 Firestore rules are configured locally in `firestore.rules` and referenced from `firebase.json`. They still need to be deployed and manually smoke-tested against the Firebase project.
@@ -245,10 +249,29 @@ These do not block MVP:
 - Every member can create Plans.
 - Every member can vote on Plans.
 
+## Manual Smoke Test Checklist
+
+Run this after deploying Firestore rules, Firestore indexes, and the Cloudflare
+Worker upload signer, then launching Flutter with `R2_UPLOAD_SIGNER_URL`.
+
+- [ ] User A can sign up
+- [ ] User A can complete profile setup
+- [ ] User A can create a Circle
+- [ ] User B can sign up and complete profile setup
+- [ ] User B can join User A's Circle by invite code
+- [ ] User B cannot join a Circle by writing only a known `circleId`
+- [ ] Circle members can send and receive a real-time text message
+- [ ] Circle members can send and view a photo message
+- [ ] Circle members can upload today's Pulse
+- [ ] Circle members can view today's Pulse wall
+- [ ] Circle members can create a Plan
+- [ ] Circle members can respond to a Plan and see counts update
+- [ ] A signed-in non-member cannot read Circle messages, Pulses, Plans, or sign Circle media uploads
+
 ## Next Step
 
 Continue MVP implementation:
 
-1. deploy Firestore rules and the Cloudflare Worker upload signer
-2. smoke-test with two users, including Pulse and message photo upload
+1. deploy Firestore rules, Firestore indexes, and the Cloudflare Worker upload signer
+2. run the two-user smoke checklist above, including Pulse and message photo upload
 3. polish Circle Room/Home layout after real-device testing

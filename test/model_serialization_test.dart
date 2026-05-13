@@ -54,10 +54,11 @@ void main() {
     final member = CircleMemberModel(
       userId: 'user-1',
       circleId: 'circle-1',
-      role: CircleMemberRole.creator,
+      role: CircleMemberRole.member,
       displayName: 'Sudip',
       photoUrl: null,
       joinedAt: now,
+      inviteCodeUsed: 'AB12CD',
     );
 
     final restored = CircleMemberModel.fromMap(member.toMap());
@@ -66,5 +67,6 @@ void main() {
     expect(restored.circleId, member.circleId);
     expect(restored.role, member.role);
     expect(restored.joinedAt, member.joinedAt);
+    expect(restored.inviteCodeUsed, member.inviteCodeUsed);
   });
 }

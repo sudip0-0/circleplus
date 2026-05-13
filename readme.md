@@ -194,6 +194,11 @@ Deploy:
 npm run deploy
 ```
 
+The Worker verifies Firebase ID tokens. For Circle media uploads, it also checks
+that the signed-in user is a member of the target Circle before returning a
+presigned R2 upload URL. Deploy Firestore rules before testing real photo
+uploads so this membership check uses the same privacy rules as the app.
+
 Run Flutter with the deployed Worker URL:
 
 ```bash

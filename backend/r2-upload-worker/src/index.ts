@@ -20,6 +20,11 @@ type SignRequest = {
   circleId?: string;
 };
 
+type VerifiedFirebaseUser = {
+  userId: string;
+  token: string;
+};
+
 const firebaseJwks = createRemoteJWKSet(
   new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'),
 );
@@ -36,8 +41,8 @@ export default {
       return json({ error: 'Method not allowed' }, 405, corsHeaders);
     }
 
-    const userId = await verifyFirebaseUser(request, env);
-    if (!userId) {
+    const firebaseUser = await verifyFirebaseUser(request, env);
+    if (!firebaseUser) {
       return json({ error: 'Unauthorized' }, 401, corsHeaders);
     }
 
@@ -53,10 +58,26 @@ export default {
       return json({ error: validationError }, 400, corsHeaders);
     }
 
+    if (isCircleMediaType(body.type!)) {
+      try {
+        const isMember = await verifyCircleMembership({
+          env,
+          firebaseIdToken: firebaseUser.token,
+          circleId: body.circleId!,
+          userId: firebaseUser.userId,
+        });
+        if (!isMember) {
+          return json({ error: 'Circle membership required' }, 403, corsHeaders);
+        }
+      } catch {
+        return json({ error: 'Could not verify Circle membership' }, 503, corsHeaders);
+      }
+    }
+
     const extension = normalizeExtension(body.fileExtension!);
     const objectKey = buildObjectKey({
       type: body.type!,
-      userId,
+      userId: firebaseUser.userId,
       circleId: body.circleId,
       extension,
     });
@@ -96,7 +117,7 @@ export default {
 async function verifyFirebaseUser(
   request: Request,
   env: Env,
-): Promise<string | null> {
+): Promise<VerifiedFirebaseUser | null> {
   const authorization = request.headers.get('authorization') ?? '';
   const match = authorization.match(/^Bearer (.+)$/);
   if (!match) {
@@ -109,7 +130,10 @@ async function verifyFirebaseUser(
       issuer,
       audience: env.FIREBASE_PROJECT_ID,
     });
-    return verified.payload.sub ?? null;
+    if (typeof verified.payload.sub !== 'string') {
+      return null;
+    }
+    return { userId: verified.payload.sub, token: match[1] };
   } catch {
     return null;
   }
@@ -126,12 +150,51 @@ function validateSignRequest(body: SignRequest): string | null {
     return 'Invalid file extension';
   }
   if (
-    ['circleCover', 'messagePhoto', 'pulsePhoto'].includes(body.type) &&
+    isCircleMediaType(body.type) &&
     !body.circleId
   ) {
     return 'circleId is required for Circle media';
   }
+  if (body.circleId && body.circleId.includes('/')) {
+    return 'Invalid Circle ID';
+  }
   return null;
+}
+
+function isCircleMediaType(type: UploadType | undefined): boolean {
+  return type === 'circleCover' || type === 'messagePhoto' || type === 'pulsePhoto';
+}
+
+async function verifyCircleMembership(input: {
+  env: Env;
+  firebaseIdToken: string;
+  circleId: string;
+  userId: string;
+}): Promise<boolean> {
+  const documentPath = [
+    'circles',
+    encodeURIComponent(input.circleId),
+    'members',
+    encodeURIComponent(input.userId),
+  ].join('/');
+  const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
+    input.env.FIREBASE_PROJECT_ID,
+  )}/databases/(default)/documents/${documentPath}`;
+
+  const response = await fetch(url, {
+    headers: {
+      authorization: `Bearer ${input.firebaseIdToken}`,
+    },
+  });
+
+  if (response.status === 200) {
+    return true;
+  }
+  if (response.status === 403 || response.status === 404) {
+    return false;
+  }
+
+  throw new Error(`Firestore membership check failed with ${response.status}`);
 }
 
 function buildObjectKey(input: {

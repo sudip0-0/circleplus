@@ -160,11 +160,13 @@ lib/
 
     notifications/
       data/
-        firebase_notification_service.dart
+        firebase_notification_repository.dart
       domain/
-        notification_service.dart
-      presentation/
-        notification_controller.dart
+        notification_repository.dart
+
+  services/
+    notifications/
+      notification_service.dart
 ```
 
 ## Dependency Direction
@@ -280,7 +282,8 @@ Fields:
   "role": "creator",
   "displayName": "Adam",
   "photoUrl": null,
-  "joinedAt": "serverTimestamp"
+  "joinedAt": "serverTimestamp",
+  "inviteCodeUsed": null
 }
 ```
 
@@ -292,6 +295,7 @@ Purpose:
 - permission checking
 - member list
 - Circle access
+- invite-backed join verification for non-creator members
 
 ### messages
 
@@ -556,12 +560,11 @@ Circle rooms now show:
 - photo messages through the shared R2 upload path
 - message composer
 
-Photo message and Pulse photo creation remain blocked in the UI until a
-backend/serverless endpoint can return presigned Cloudflare R2 upload URLs.
-
-Pulse photo creation is wired through `StorageService`. It calls a configured
-R2 upload signer URL, uploads bytes to the returned presigned PUT URL, then
-stores the returned public URL in the Pulse document.
+Photo message and Pulse photo creation are wired through `StorageService`.
+When `R2_UPLOAD_SIGNER_URL` is configured, the app requests a presigned
+Cloudflare R2 PUT URL, uploads bytes to that URL, then stores the returned
+public URL in the message or Pulse document. Without the signer URL, the app
+shows a developer setup error instead of attempting a direct upload.
 
 ## Upload Signer
 
@@ -571,8 +574,13 @@ The repo includes a Cloudflare Worker scaffold at:
 backend/r2-upload-worker
 ```
 
-The Worker verifies Firebase ID tokens, signs Cloudflare R2 PUT URLs, and
-returns:
+The Worker verifies Firebase ID tokens before signing uploads. For Circle media
+types (`circleCover`, `messagePhoto`, `pulsePhoto`), it also verifies that the
+authenticated user is a member of the target Circle by reading that user's
+membership document through Firestore. Avatar uploads are scoped to the
+authenticated user.
+
+On success, the Worker returns:
 
 ```json
 {
@@ -676,6 +684,10 @@ exists(/databases/$(database)/documents/circles/$(circleId)/members/$(request.au
 Required protections:
 - non-authenticated users cannot read private content
 - non-members cannot read Circle messages, Pulses, Plans
+- users can only join a Circle when their member document includes a valid
+  invite code that resolves to that Circle
+- Circle member count can only increment in the same commit that creates a
+  valid invite-backed member document
 - users can only post as themselves
 - users can only create/update their own Pulse
 - users can only create/update their own Plan response

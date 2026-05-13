@@ -18,8 +18,19 @@ service cloud.firestore {
       return /databases/$(database)/documents/circles/$(circleId)/members/$(userId);
     }
 
+    function inviteCodePath(code) {
+      return /databases/$(database)/documents/inviteCodes/$(code);
+    }
+
     function isCircleMember(circleId) {
       return signedIn() && exists(memberPath(circleId, request.auth.uid));
+    }
+
+    function isJoiningCircle(circleId) {
+      return signedIn()
+        && !exists(memberPath(circleId, request.auth.uid))
+        && getAfter(memberPath(circleId, request.auth.uid)).data.userId == request.auth.uid
+        && getAfter(memberPath(circleId, request.auth.uid)).data.role == 'member';
     }
 
     function changedOnly(keys) {
@@ -67,6 +78,7 @@ service cloud.firestore {
           signedIn()
           && changedOnly(['memberCount', 'updatedAt'])
           && request.resource.data.memberCount == resource.data.memberCount + 1
+          && isJoiningCircle(circleId)
         ) || (
           isCircleMember(circleId)
           && changedOnly(['lastMessageText', 'lastMessageAt', 'updatedAt'])
@@ -80,7 +92,17 @@ service cloud.firestore {
         allow create: if isSelf(userId)
           && request.resource.data.userId == userId
           && request.resource.data.circleId == circleId
-          && request.resource.data.role in ['creator', 'member'];
+          && (
+            (
+              request.resource.data.role == 'creator'
+              && getAfter(circlePath(circleId)).data.createdBy == userId
+            ) || (
+              request.resource.data.role == 'member'
+              && request.resource.data.inviteCodeUsed is string
+              && validInviteCode(request.resource.data.inviteCodeUsed)
+              && get(inviteCodePath(request.resource.data.inviteCodeUsed)).data.circleId == circleId
+            )
+          );
 
         allow update, delete: if false;
       }

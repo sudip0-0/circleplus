@@ -18,6 +18,7 @@ class CircleMemberModel {
     required this.displayName,
     required this.photoUrl,
     required this.joinedAt,
+    this.inviteCodeUsed,
   });
 
   final String userId;
@@ -26,6 +27,7 @@ class CircleMemberModel {
   final String displayName;
   final String? photoUrl;
   final DateTime joinedAt;
+  final String? inviteCodeUsed;
 
   Map<String, Object?> toMap() {
     return {
@@ -35,6 +37,7 @@ class CircleMemberModel {
       'displayName': displayName,
       'photoUrl': photoUrl,
       'joinedAt': joinedAt,
+      if (inviteCodeUsed != null) 'inviteCodeUsed': inviteCodeUsed,
     };
   }
 
@@ -46,6 +49,7 @@ class CircleMemberModel {
       displayName: map['displayName'] as String? ?? '',
       photoUrl: map['photoUrl'] as String?,
       joinedAt: _readDate(map['joinedAt']),
+      inviteCodeUsed: map['inviteCodeUsed'] as String?,
     );
   }
 }

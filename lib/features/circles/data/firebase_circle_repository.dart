@@ -100,6 +100,7 @@ class FirebaseCircleRepository implements CircleRepository {
           displayName: user.displayName,
           photoUrl: user.photoUrl,
           joinedAt: now,
+          inviteCodeUsed: normalizedCode,
         ).toMap(),
       );
       transaction.update(circleRef, {
