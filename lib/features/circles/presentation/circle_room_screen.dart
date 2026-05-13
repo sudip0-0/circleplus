@@ -4,6 +4,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_view.dart';
+import '../../messages/presentation/message_composer.dart';
+import '../../messages/presentation/message_list.dart';
+import '../../plans/presentation/plan_card.dart';
+import '../../plans/presentation/plan_controller.dart';
+import '../../pulses/presentation/today_pulse_card.dart';
 import 'circle_controller.dart';
 
 class CircleRoomScreen extends ConsumerWidget {
@@ -33,31 +38,95 @@ class CircleRoomScreen extends ConsumerWidget {
           if (item == null) {
             return const ErrorView(message: 'Circle was not found.');
           }
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.name,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  if (item.description?.isNotEmpty == true) ...[
+          return Column(
+            children: [
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    Text(
+                      item.name,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    if (item.description?.isNotEmpty == true) ...[
+                      const SizedBox(height: 8),
+                      Text(item.description!),
+                    ],
                     const SizedBox(height: 8),
-                    Text(item.description!),
+                    SelectableText('Invite code: ${item.inviteCode}'),
+                    const SizedBox(height: 12),
+                    TodayPulseCard(circleId: circleId),
+                    const SizedBox(height: 12),
+                    _PlansPreview(circleId: circleId),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Messages',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    SizedBox(
+                      height: 360,
+                      child: MessageList(circleId: circleId),
+                    ),
                   ],
-                  const SizedBox(height: 16),
-                  SelectableText('Invite code: ${item.inviteCode}'),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Messages, Pulses, and Plans will live here in the next MVP phases.',
-                  ),
-                ],
+                ),
               ),
-            ),
+              MessageComposer(circleId: circleId),
+            ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _PlansPreview extends ConsumerWidget {
+  const _PlansPreview({required this.circleId});
+
+  final String circleId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final plans = ref.watch(activePlansProvider(circleId));
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Plans',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () =>
+                      context.go('/circles/$circleId/plans/create'),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Create'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            plans.when(
+              loading: () => const LinearProgressIndicator(),
+              error: (error, stackTrace) => Text(error.toString()),
+              data: (items) {
+                if (items.isEmpty) {
+                  return const Text('No active Plans yet.');
+                }
+                return Column(
+                  children: items.take(2).map((plan) {
+                    return PlanCard(plan: plan);
+                  }).toList(),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

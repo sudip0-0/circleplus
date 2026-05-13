@@ -6,7 +6,7 @@ CirclePulse
 
 ## Current Stage
 
-Phase 1 in progress. Firebase initialization, Riverpod app scope, GoRouter shell, clean folder structure, MVP dependencies, and the Cloudflare R2 storage decision are in place.
+Phase 3 in progress. Firebase initialization, Riverpod app scope, GoRouter routing, Authentication, Profile, Circles, text Messages, Pulse structure/wall, and lightweight Plans are in place. Cloudflare R2 remains documented as the media storage provider, and photo uploads are intentionally blocked until a backend presigned URL endpoint exists.
 
 ## Product Summary
 
@@ -43,78 +43,78 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 
 ### 2. Authentication
 
-- [ ] Create AuthRepository interface
-- [ ] Create FirebaseAuthRepository
-- [ ] Build sign up screen
-- [ ] Build sign in screen
-- [ ] Add logout
-- [ ] Add auth state provider
-- [ ] Add auth-based routing
-- [ ] Create Firestore user document after signup
+- [x] Create AuthRepository interface
+- [x] Create FirebaseAuthRepository
+- [x] Build sign up screen
+- [x] Build sign in screen
+- [x] Add logout
+- [x] Add auth state provider
+- [x] Add auth-based routing
+- [x] Create Firestore user document after signup
 
 ### 3. Profile
 
-- [ ] Create AppUser model
-- [ ] Create ProfileRepository
-- [ ] Build edit profile screen
+- [x] Create AppUser model
+- [x] Create ProfileRepository
+- [x] Build edit profile screen
 - [ ] Add avatar upload
-- [ ] Add display name validation
-- [ ] Route user to profile setup if missing
+- [x] Add display name validation
+- [x] Route user to profile setup if missing
 
 ### 4. Circles
 
-- [ ] Create Circle model
-- [ ] Create CircleMember model
-- [ ] Create CircleRepository
-- [ ] Implement create Circle
-- [ ] Generate invite code
-- [ ] Implement join by invite code
-- [ ] Implement list my Circles
-- [ ] Implement member list
-- [ ] Build Home Screen
-- [ ] Build Create Circle Screen
-- [ ] Build Join Circle Screen
-- [ ] Build Circle Room Screen
+- [x] Create Circle model
+- [x] Create CircleMember model
+- [x] Create CircleRepository
+- [x] Implement create Circle
+- [x] Generate invite code
+- [x] Implement join by invite code
+- [x] Implement list my Circles
+- [x] Implement member list
+- [x] Build Home Screen
+- [x] Build Create Circle Screen
+- [x] Build Join Circle Screen
+- [x] Build Circle Room Screen
 
 ### 5. Messages
 
-- [ ] Create Message model
-- [ ] Create MessageRepository
-- [ ] Implement text messages
-- [ ] Implement real-time message stream
-- [ ] Implement message composer
-- [ ] Implement message list
+- [x] Create Message model
+- [x] Create MessageRepository
+- [x] Implement text messages
+- [x] Implement real-time message stream
+- [x] Implement message composer
+- [x] Implement message list
 - [ ] Implement photo message upload
-- [ ] Update Circle lastMessage fields
-- [ ] Add empty message state
+- [x] Update Circle lastMessage fields
+- [x] Add empty message state
 
 ### 6. Pulses
 
-- [ ] Create Pulse model
-- [ ] Create PulseRepository
-- [ ] Create date key utility
-- [ ] Implement one Pulse per user per Circle per day
+- [x] Create Pulse model
+- [x] Create PulseRepository
+- [x] Create date key utility
+- [x] Implement one Pulse per user per Circle per day
 - [ ] Implement photo upload for Pulse
-- [ ] Implement optional caption
-- [ ] Implement optional mood
-- [ ] Build Today Pulse Card
-- [ ] Build Create Pulse Screen
-- [ ] Build Pulse Wall Screen
+- [x] Implement optional caption
+- [x] Implement optional mood
+- [x] Build Today Pulse Card
+- [x] Build Create Pulse Screen
+- [x] Build Pulse Wall Screen
 - [ ] Show Pulse progress on Home Screen
-- [ ] Show Pulse progress inside Circle Room
+- [x] Show Pulse progress inside Circle Room
 
 ### 7. Plans
 
-- [ ] Create Plan model
-- [ ] Create PlanResponse model
-- [ ] Create PlanRepository
-- [ ] Implement create Plan
-- [ ] Implement response voting
-- [ ] Implement response count updates
-- [ ] Build Plan Card
-- [ ] Build Create Plan Screen
-- [ ] Build Plan Detail Screen
-- [ ] Add empty Plans state
+- [x] Create Plan model
+- [x] Create PlanResponse model
+- [x] Create PlanRepository
+- [x] Implement create Plan
+- [x] Implement response voting
+- [x] Implement response count updates
+- [x] Build Plan Card
+- [x] Build Create Plan Screen
+- [x] Build Plan Detail Screen
+- [x] Add empty Plans state
 
 ### 8. Notifications
 
@@ -135,12 +135,14 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [ ] Protect R2 uploads through backend-generated presigned URLs
 - [ ] Test basic access manually
 
+No Firestore rules file is currently configured in the repo. Membership-based rules remain a required next step before production use.
+
 ### 10. Tests
 
-- [ ] Test Pulse date key generation
-- [ ] Test invite code format
-- [ ] Test model serialization
-- [ ] Test Plan response aggregation logic
+- [x] Test Pulse date key generation
+- [x] Test invite code format
+- [x] Test model serialization
+- [x] Test Plan response aggregation logic
 - [ ] Test auth routing logic
 
 ### 11. UI Polish
@@ -148,9 +150,9 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [ ] Add consistent spacing
 - [ ] Add reusable button
 - [ ] Add reusable text field
-- [ ] Add EmptyState widget
-- [ ] Add LoadingView widget
-- [ ] Add ErrorView widget
+- [x] Add EmptyState widget
+- [x] Add LoadingView widget
+- [x] Add ErrorView widget
 - [ ] Add CircleCard widget
 - [ ] Add Avatar widget
 - [ ] Add responsive layout checks
@@ -243,7 +245,8 @@ These do not block MVP:
 
 ## Next Step
 
-Continue Phase 1 setup:
+Continue MVP implementation:
 
-1. decide where the R2 presigned upload endpoint will live
-2. implement auth flow first
+1. add Firestore security rules for users and Circle membership
+2. add the backend/serverless presigned upload endpoint for R2 before enabling photo messages or Pulse posting
+3. implement notifications-ready FCM token storage when security rules are in place

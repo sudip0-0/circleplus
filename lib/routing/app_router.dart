@@ -12,8 +12,12 @@ import '../features/circles/presentation/circle_room_screen.dart';
 import '../features/circles/presentation/create_circle_screen.dart';
 import '../features/circles/presentation/home_screen.dart';
 import '../features/circles/presentation/join_circle_screen.dart';
+import '../features/plans/presentation/create_plan_screen.dart';
+import '../features/plans/presentation/plan_detail_screen.dart';
 import '../features/profile/presentation/edit_profile_screen.dart';
 import '../features/profile/presentation/profile_providers.dart';
+import '../features/pulses/presentation/create_pulse_screen.dart';
+import '../features/pulses/presentation/pulse_wall_screen.dart';
 
 class AppRoutes {
   const AppRoutes._();
@@ -88,6 +92,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/circles/:circleId/members',
         builder: (context, state) =>
             CircleMembersScreen(circleId: state.pathParameters['circleId']!),
+      ),
+      GoRoute(
+        path: '/circles/:circleId/pulse/create',
+        builder: (context, state) =>
+            CreatePulseScreen(circleId: state.pathParameters['circleId']!),
+      ),
+      GoRoute(
+        path: '/circles/:circleId/pulses',
+        builder: (context, state) =>
+            PulseWallScreen(circleId: state.pathParameters['circleId']!),
+      ),
+      GoRoute(
+        path: '/circles/:circleId/plans/create',
+        builder: (context, state) =>
+            CreatePlanScreen(circleId: state.pathParameters['circleId']!),
+      ),
+      GoRoute(
+        path: '/circles/:circleId/plans/:planId',
+        builder: (context, state) => PlanDetailScreen(
+          circleId: state.pathParameters['circleId']!,
+          planId: state.pathParameters['planId']!,
+        ),
       ),
     ],
   );

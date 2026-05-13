@@ -11,11 +11,10 @@ final messageRepositoryProvider = Provider<MessageRepository>((ref) {
   return FirebaseMessageRepository();
 });
 
-final circleMessagesProvider = StreamProvider.family<List<MessageModel>, String>(
-  (ref, circleId) {
-    return ref.watch(messageRepositoryProvider).watchMessages(circleId);
-  },
-);
+final circleMessagesProvider =
+    StreamProvider.family<List<MessageModel>, String>((ref, circleId) {
+      return ref.watch(messageRepositoryProvider).watchMessages(circleId);
+    });
 
 final messageControllerProvider =
     AsyncNotifierProvider<MessageController, void>(MessageController.new);
@@ -31,11 +30,9 @@ class MessageController extends AsyncNotifier<void> {
     final sender = await _requireProfile();
     state = const AsyncLoading();
     state = await AsyncValue.guard(() {
-      return ref.read(messageRepositoryProvider).sendTextMessage(
-            circleId: circleId,
-            text: text,
-            sender: sender,
-          );
+      return ref
+          .read(messageRepositoryProvider)
+          .sendTextMessage(circleId: circleId, text: text, sender: sender);
     });
   }
 

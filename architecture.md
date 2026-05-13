@@ -457,11 +457,6 @@ Implemented routes:
 /circles/join
 /circles/:circleId
 /circles/:circleId/members
-```
-
-Planned later routes:
-
-```txt
 /circles/:circleId/pulse/create
 /circles/:circleId/pulses
 /circles/:circleId/plans/create
@@ -513,7 +508,6 @@ messageControllerProvider
 pulseRepositoryProvider
 todayPulsesProvider(circleId)
 myTodayPulseProvider(circleId)
-pulseProgressProvider(circleId)
 pulseControllerProvider
 ```
 
@@ -522,10 +516,23 @@ pulseControllerProvider
 ```txt
 planRepositoryProvider
 activePlansProvider(circleId)
-planProvider(planId)
-planResponsesProvider(planId)
+planProvider((circleId, planId))
+planResponsesProvider((circleId, planId))
 planControllerProvider
 ```
+
+## Current Circle Room Composition
+
+Circle rooms now show:
+- Circle context and invite code
+- member list action
+- today's Pulse card and Pulse wall navigation
+- active Plans preview and create Plan action
+- real-time text messages
+- message composer
+
+Photo message and Pulse photo creation remain blocked in the UI until a
+backend/serverless endpoint can return presigned Cloudflare R2 upload URLs.
 
 ## Pulse Date Key
 
