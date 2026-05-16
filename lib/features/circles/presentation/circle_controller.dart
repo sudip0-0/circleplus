@@ -78,6 +78,37 @@ class CircleController extends AsyncNotifier<void> {
     return result.requireValue;
   }
 
+  /// Leaves a Circle. If the caller is the creator and the last member,
+  /// the Circle is deleted entirely instead.
+  Future<void> leaveCircle(String circleId) async {
+    final user = ref.read(currentUserProvider);
+    if (user == null) {
+      throw StateError('You must be signed in.');
+    }
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() {
+      return ref
+          .read(circleRepositoryProvider)
+          .leaveCircle(circleId: circleId, userId: user.id);
+    });
+    _logState('circle.leave', {'circleId': circleId});
+  }
+
+  /// Deletes a Circle (creator-only, last-member-only).
+  Future<void> deleteCircle(String circleId) async {
+    final user = ref.read(currentUserProvider);
+    if (user == null) {
+      throw StateError('You must be signed in.');
+    }
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() {
+      return ref
+          .read(circleRepositoryProvider)
+          .deleteCircle(circleId: circleId, creatorId: user.id);
+    });
+    _logState('circle.delete', {'circleId': circleId});
+  }
+
   Future<AppUser> _requireProfile() async {
     final user = ref.read(currentUserProvider);
     if (user == null) {

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/utils/image_compression.dart';
 import '../../../core/utils/media_type.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/avatar.dart';
@@ -152,19 +153,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   Future<void> _pickAvatar() async {
-    final image = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-      maxWidth: 800,
-    );
+    final image = await _picker.pickImage(source: ImageSource.gallery);
     if (image == null) {
       return;
     }
 
-    final bytes = await image.readAsBytes();
+    final raw = await image.readAsBytes();
+    final compressed = await compressImageBytes(raw);
     setState(() {
-      _avatarBytes = bytes;
-      _avatarFileName = image.name;
+      _avatarBytes = compressed;
+      // Use .png since compressImageBytes always returns PNG-encoded bytes.
+      _avatarFileName = 'avatar.png';
     });
   }
 }

@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/utils/media_type.dart';
+import '../../../core/utils/image_compression.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/circlepulse_ui.dart';
 import 'pulse_controller.dart';
@@ -23,8 +23,8 @@ class _CreatePulseScreenState extends ConsumerState<CreatePulseScreen> {
   final _captionController = TextEditingController();
   final _moodController = TextEditingController();
   final _picker = ImagePicker();
-  XFile? _selectedImage;
-  Uint8List? _previewBytes;
+  // Compressed bytes ready for upload; also used as the preview source.
+  Uint8List? _compressedBytes;
 
   @override
   void dispose() {
@@ -91,7 +91,7 @@ class _CreatePulseScreenState extends ConsumerState<CreatePulseScreen> {
                               ),
                               borderRadius: BorderRadius.circular(22),
                             ),
-                            child: _previewBytes == null
+                            child: _compressedBytes == null
                                 ? const Center(
                                     child: Icon(
                                       Icons.add_a_photo_outlined,
@@ -102,7 +102,7 @@ class _CreatePulseScreenState extends ConsumerState<CreatePulseScreen> {
                                 : ClipRRect(
                                     borderRadius: BorderRadius.circular(22),
                                     child: Image.memory(
-                                      _previewBytes!,
+                                      _compressedBytes!,
                                       fit: BoxFit.cover,
                                     ),
                                   ),
@@ -163,38 +163,35 @@ class _CreatePulseScreenState extends ConsumerState<CreatePulseScreen> {
   }
 
   Future<void> _pickImage() async {
-    final image = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-      maxWidth: 1600,
-    );
+    final image = await _picker.pickImage(source: ImageSource.gallery);
     if (image == null) {
       return;
     }
-    final bytes = await image.readAsBytes();
+    final raw = await image.readAsBytes();
+    // Compress off the UI thread before storing; the same bytes are used for
+    // the preview and the upload so we never compress twice.
+    final compressed = await compressImageBytes(raw);
     setState(() {
-      _selectedImage = image;
-      _previewBytes = bytes;
+      _compressedBytes = compressed;
     });
   }
 
   Future<void> _submit() async {
-    final image = _selectedImage;
-    if (image == null) {
+    final bytes = _compressedBytes;
+    if (bytes == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Choose a photo first.')));
       return;
     }
 
-    final bytes = await image.readAsBytes();
     await ref
         .read(pulseControllerProvider.notifier)
         .uploadPhotoAndCreatePulse(
           circleId: widget.circleId,
           bytes: bytes,
-          contentType: imageContentTypeForName(image.name),
-          fileExtension: fileExtensionForName(image.name),
+          contentType: 'image/png',
+          fileExtension: 'png',
           caption: _captionController.text,
           mood: _moodController.text,
         );

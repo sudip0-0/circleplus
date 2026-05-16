@@ -171,12 +171,14 @@ service cloud.firestore {
         && request.resource.data.name.size() >= 1
         && request.resource.data.name.size() <= 64;
 
-      // Update: two permitted cases only.
+      // Update: three permitted cases only.
       //
       // Case 1 – Join increment: a user is atomically joining and bumps
       //           memberCount by exactly 1.
       // Case 2 – Last-message update: any member may update the lastMessage
       //           preview fields after sending a message.
+      // Case 3 – Leave decrement: a member is removing themselves and drops
+      //           memberCount by exactly 1.
       allow update: if (
           signedIn()
           && changedOnly(['memberCount', 'updatedAt'])
@@ -185,10 +187,21 @@ service cloud.firestore {
         ) || (
           isCircleMember(circleId)
           && changedOnly(['lastMessageText', 'lastMessageAt', 'updatedAt'])
+        ) || (
+          isCircleMember(circleId)
+          && changedOnly(['memberCount', 'updatedAt'])
+          && request.resource.data.memberCount == resource.data.memberCount - 1
+          && !existsAfter(memberPath(circleId, request.auth.uid))
         );
 
-      // Circles cannot be deleted via the client (admin-only operation).
-      allow delete: if false;
+      // Delete: only the creator may delete the Circle, and only when they are
+      // the last member (memberCount == 1). The creator's own member document
+      // must also be deleted in the same transaction, proven by existsAfter
+      // returning false for that member document.
+      allow delete: if isCircleMember(circleId)
+        && resource.data.createdBy == request.auth.uid
+        && resource.data.memberCount == 1
+        && !existsAfter(memberPath(circleId, request.auth.uid));
 
       // ── /circles/{circleId}/members/{userId} ─────────────────────────────
 
@@ -217,9 +230,16 @@ service cloud.firestore {
             )
           );
 
-        // Members cannot update or delete their membership via the client.
-        // (Leave-Circle and kick are future admin-panel operations.)
-        allow update, delete: if false;
+        // Update is forbidden (membership fields are immutable).
+        allow update: if false;
+
+        // Delete: a member may remove their own membership document to leave
+        // the Circle. The Circle's memberCount must be decremented by exactly 1
+        // in the same transaction.
+        allow delete: if isSelf(userId)
+          && isCircleMember(circleId)
+          && getAfter(circlePath(circleId)).data.memberCount
+             == get(circlePath(circleId)).data.memberCount - 1;
       }
 
       // ── /circles/{circleId}/messages/{messageId} ─────────────────────────

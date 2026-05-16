@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/utils/media_type.dart';
+import '../../../core/utils/image_compression.dart';
 import '../../../shared/widgets/circlepulse_ui.dart';
 import 'message_controller.dart';
 
@@ -107,23 +107,20 @@ class _MessageComposerState extends ConsumerState<MessageComposer> {
   }
 
   Future<void> _pickAndSendPhoto() async {
-    final image = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-      maxWidth: 1600,
-    );
+    final image = await _picker.pickImage(source: ImageSource.gallery);
     if (image == null) {
       return;
     }
 
-    final bytes = await image.readAsBytes();
+    final raw = await image.readAsBytes();
+    final bytes = await compressImageBytes(raw);
     await ref
         .read(messageControllerProvider.notifier)
         .uploadPhotoMessage(
           circleId: widget.circleId,
           bytes: bytes,
-          contentType: imageContentTypeForName(image.name),
-          fileExtension: fileExtensionForName(image.name),
+          contentType: 'image/png',
+          fileExtension: 'png',
           text: _controller.text,
         );
     if (!ref.read(messageControllerProvider).hasError) {

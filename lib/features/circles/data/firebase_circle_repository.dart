@@ -164,6 +164,72 @@ class FirebaseCircleRepository implements CircleRepository {
         );
   }
 
+  @override
+  Future<void> leaveCircle({
+    required String circleId,
+    required String userId,
+  }) async {
+    final circleRef = _circles.doc(circleId);
+    final memberRef = circleRef.collection('members').doc(userId);
+
+    await _firestore.runTransaction((transaction) async {
+      final circleSnapshot = await transaction.get(circleRef);
+      final memberSnapshot = await transaction.get(memberRef);
+
+      if (!memberSnapshot.exists) {
+        throw const AppException('You are not a member of this Circle.');
+      }
+
+      final role = memberSnapshot.data()?['role'] as String?;
+      final memberCount =
+          (circleSnapshot.data()?['memberCount'] as int?) ?? 0;
+
+      if (role == 'creator' && memberCount > 1) {
+        throw const AppException(
+          'You created this Circle. Ask another member to host it before you leave, or delete the Circle if you want to close it.',
+        );
+      }
+
+      transaction.delete(memberRef);
+      transaction.update(circleRef, {
+        'memberCount': FieldValue.increment(-1),
+        'updatedAt': DateTime.now(),
+      });
+    });
+  }
+
+  @override
+  Future<void> deleteCircle({
+    required String circleId,
+    required String creatorId,
+  }) async {
+    final circleRef = _circles.doc(circleId);
+
+    // Verify the requester is the creator and is the last member before
+    // deleting. We read inside a transaction to prevent TOCTOU races.
+    await _firestore.runTransaction((transaction) async {
+      final circleSnapshot = await transaction.get(circleRef);
+      if (!circleSnapshot.exists) {
+        return;
+      }
+      final data = circleSnapshot.data()!;
+      if (data['createdBy'] != creatorId) {
+        throw const AppException('Only the creator can delete a Circle.');
+      }
+      final memberCount = (data['memberCount'] as int?) ?? 0;
+      if (memberCount > 1) {
+        throw const AppException(
+          'Cannot delete a Circle that still has other members.',
+        );
+      }
+
+      // Delete the creator's own member document and the circle document.
+      final memberRef = circleRef.collection('members').doc(creatorId);
+      transaction.delete(memberRef);
+      transaction.delete(circleRef);
+    });
+  }
+
   Future<String> _createUniqueInviteCode() async {
     for (var attempt = 0; attempt < 5; attempt++) {
       final code = generateInviteCode();

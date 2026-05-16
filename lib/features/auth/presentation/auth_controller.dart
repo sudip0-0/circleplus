@@ -61,6 +61,14 @@ class AuthController extends AsyncNotifier<void> {
     _logState('auth.signOut');
   }
 
+  Future<void> sendPasswordResetEmail(String email) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => ref.read(authRepositoryProvider).sendPasswordResetEmail(email),
+    );
+    _logState('auth.passwordReset');
+  }
+
   void _logState(String event) {
     if (state.hasError) {
       AppLogger.error(event, state.error!);

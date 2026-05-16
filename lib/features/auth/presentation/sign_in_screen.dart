@@ -96,7 +96,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                           ),
                           const SizedBox(height: 10),
                           TextButton(
-                            onPressed: authState.isLoading ? null : () {},
+                            onPressed: authState.isLoading
+                                ? null
+                                : () => _showForgotPasswordSheet(context),
                             child: const Text('Forgot password?'),
                           ),
                         ],
@@ -130,6 +132,17 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     );
   }
 
+  void _showForgotPasswordSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _ForgotPasswordSheet(
+        prefillEmail: _emailController.text.trim(),
+      ),
+    );
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -155,5 +168,213 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       return 'Password must be at least 6 characters.';
     }
     return null;
+  }
+}
+
+// ── Forgot Password bottom sheet ──────────────────────────────────────────────
+
+class _ForgotPasswordSheet extends ConsumerStatefulWidget {
+  const _ForgotPasswordSheet({required this.prefillEmail});
+
+  final String prefillEmail;
+
+  @override
+  ConsumerState<_ForgotPasswordSheet> createState() =>
+      _ForgotPasswordSheetState();
+}
+
+class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _emailController;
+  bool _sent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: widget.prefillEmail);
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = ref.watch(authControllerProvider);
+
+    return Padding(
+      // Push the sheet up when the keyboard appears.
+      padding: MediaQuery.viewInsetsOf(context),
+      child: Container(
+        decoration: BoxDecoration(
+          color: CirclePulseColors.warmSurface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: const Border(
+            top: BorderSide(color: CirclePulseColors.outline),
+          ),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: SafeArea(
+          top: false,
+          child: _sent ? _SuccessContent(onClose: () => Navigator.pop(context)) : _FormContent(
+            formKey: _formKey,
+            emailController: _emailController,
+            isLoading: authState.isLoading,
+            onSend: _send,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _send() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    await ref
+        .read(authControllerProvider.notifier)
+        .sendPasswordResetEmail(_emailController.text.trim());
+
+    if (!mounted) {
+      return;
+    }
+    if (ref.read(authControllerProvider).hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(ref.read(authControllerProvider).error.toString()),
+        ),
+      );
+      return;
+    }
+    setState(() => _sent = true);
+  }
+}
+
+class _FormContent extends StatelessWidget {
+  const _FormContent({
+    required this.formKey,
+    required this.emailController,
+    required this.isLoading,
+    required this.onSend,
+  });
+
+  final GlobalKey<FormState> formKey;
+  final TextEditingController emailController;
+  final bool isLoading;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    return Form(
+      key: formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Handle bar
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: CirclePulseColors.outline,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Reset your password',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: CirclePulseColors.cocoa,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "Enter your email and we'll send you a link to create a new password.",
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: CirclePulseColors.muted,
+            ),
+          ),
+          const SizedBox(height: 20),
+          AppTextField(
+            controller: emailController,
+            label: 'Email address',
+            prefixIcon: Icons.mail_outline,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.done,
+            validator: (value) {
+              final text = value?.trim() ?? '';
+              if (!text.contains('@') || !text.contains('.')) {
+                return 'Enter a valid email.';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 18),
+          PrimaryGradientButton(
+            label: 'Send Reset Link',
+            icon: Icons.send_outlined,
+            isLoading: isLoading,
+            onPressed: isLoading ? null : onSend,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SuccessContent extends StatelessWidget {
+  const _SuccessContent({required this.onClose});
+
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Center(
+          child: Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: CirclePulseColors.outline,
+              borderRadius: BorderRadius.circular(99),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        const Icon(
+          Icons.mark_email_read_outlined,
+          size: 52,
+          color: CirclePulseColors.clay,
+        ),
+        const SizedBox(height: 14),
+        Text(
+          'Check your inbox',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: CirclePulseColors.cocoa,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          "If that email is registered, you'll receive a password reset link shortly.",
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: CirclePulseColors.muted,
+          ),
+        ),
+        const SizedBox(height: 24),
+        PrimaryGradientButton(
+          label: 'Done',
+          onPressed: onClose,
+        ),
+      ],
+    );
   }
 }
