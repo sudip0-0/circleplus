@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:async/async.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,7 +16,7 @@ import '../features/circles/presentation/join_circle_screen.dart';
 import '../features/plans/presentation/create_plan_screen.dart';
 import '../features/plans/presentation/plan_detail_screen.dart';
 import '../features/profile/presentation/edit_profile_screen.dart';
-import '../features/profile/presentation/profile_providers.dart';
+import '../features/profile/presentation/profile_controller.dart';
 import '../features/pulses/presentation/create_pulse_screen.dart';
 import '../features/pulses/presentation/pulse_wall_screen.dart';
 
@@ -32,12 +33,24 @@ class AppRoutes {
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
-  final profileRepository = ref.watch(profileRepositoryProvider);
+
+  // Combine auth state changes + profile stream changes so the router
+  // re-evaluates when either changes (no extra Firestore read needed).
+  final refreshStream = StreamController<void>.broadcast();
+  ref.listen(currentUserProfileProvider, (previous, current) {
+    if (!refreshStream.isClosed) refreshStream.add(null);
+  });
+  ref.onDispose(refreshStream.close);
 
   return GoRouter(
     initialLocation: AppRoutes.home,
-    refreshListenable: GoRouterRefreshStream(authRepository.authStateChanges()),
-    redirect: (context, state) async {
+    refreshListenable: GoRouterRefreshStream(
+      StreamGroup.merge([
+        authRepository.authStateChanges(),
+        refreshStream.stream,
+      ]),
+    ),
+    redirect: (context, state) {
       final user = authRepository.currentUser;
       final location = state.uri.path;
       final signingIn =
@@ -47,7 +60,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return signingIn ? null : AppRoutes.signIn;
       }
 
-      final profile = await profileRepository.getProfile(user.id);
+      // Read the already-cached stream value — no extra Firestore read.
+      final profileAsync = ref.read(currentUserProfileProvider);
+      if (profileAsync.isLoading) {
+        // Still loading — stay put and wait for the next refresh.
+        return null;
+      }
+      final profile = profileAsync.asData?.value;
       if (profile == null && location != AppRoutes.profileEdit) {
         return AppRoutes.profileEdit;
       }

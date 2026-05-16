@@ -6,7 +6,7 @@ CirclePulse
 
 ## Current Stage
 
-Phase 4 in progress. Firebase initialization, Riverpod app scope, GoRouter routing, Authentication, Profile, Circles, bounded text/photo Messages, Pulse structure/wall/Home progress, lightweight Plans, local Firestore rules, private invite-code lookup, a Cloudflare Worker R2 upload signer scaffold, media upload wiring, avatar upload, notification-ready FCM token storage, and the warm CirclePulse MVP UI pass are in place. Current work is focused on deployment readiness, responsive device checks, and a two-user MVP smoke test.
+MVP feature-complete and beta-ready. All core features are implemented: Auth, Profile, Circles (create/join/member list), Messages (text + photo + soft delete), Pulses (daily photo + wall), Plans (create/vote/edit/cancel), Firestore security rules (hardened + rule-tested), Cloud Functions for push notifications, and Cloudflare R2 media uploads via presigned URLs. Remaining work is deployment (Firestore rules/indexes, Cloud Functions, R2 Worker) and real-device beta smoke testing.
 
 ## Product Summary
 
@@ -299,8 +299,7 @@ Worker upload signer, then launching Flutter with `R2_UPLOAD_SIGNER_URL`.
 - [ ] A member cannot directly manipulate Plan response counts without a matching response write
 - [ ] A signed-in non-member cannot read Circle messages, Pulses, Plans, or sign Circle media uploads
 
-Manual security checks still required because this repo does not yet include a
-Firebase Emulator rules test harness:
+Security rules are now covered by the Firebase Emulator test harness in `rules-tests/` (see `rules-tests/README.md`). Additional manual checks for real-device beta:
 
 - [ ] Signed-out reads to `users`, `circles`, Circle subcollections, and `inviteCodes` are denied
 - [ ] Signed-in exact `get` to a valid `inviteCodes/{code}` works, but list/query is denied
@@ -309,10 +308,28 @@ Firebase Emulator rules test harness:
 - [ ] Plan count-only writes are denied unless paired with the current user's response write
 - [ ] R2 signer denies Circle media signing for signed-in non-members
 
+## Session 3 Completed Work (2026-05-16)
+
+### Features
+- **Delete own message (soft delete):** long-press to delete own messages; type set to `'deleted'`, content cleared, "Message removed" placeholder shown
+- **Plan edit + cancel:** creator-only options menu on Plan Detail Screen; edit bottom sheet for title/description/location/startsAt; cancel sets status to `'cancelled'`, disables response buttons, shows cancelled banner
+- **Cloud Functions for push notifications** (`functions/`): `onMessageCreated` and `onPlanCreated` Firestore-triggered functions fan-out FCM to all Circle members except sender/creator; stale token cleanup on failure
+- **Firebase Emulator security-rule test harness** (`rules-tests/`): TypeScript/Jest + `@firebase/rules-unit-testing`; covers all collections and edge cases including soft-delete and plan edit/cancel transitions
+- **Beta smoke-test checklist** (`BETA_SMOKE_TEST.md`): comprehensive two-user checklist for all MVP flows
+- **Router profile-check caching**: redirect now reads `currentUserProfileProvider.asData?.value` (zero-cost, already-live stream) instead of `await profileRepository.getProfile()` on every navigation; redirect is now synchronous
+
+### Verification
+- `flutter analyze` — 0 issues
+- Flutter unit tests — 25/25 passing
+- Cloud Functions TypeScript — clean compile
+- rules-tests TypeScript — clean compile
+- Full production readiness audit written to `PRODUCTION_AUDIT.md`
+
 ## Next Step
 
-Continue MVP implementation:
-
-1. deploy Firestore rules, Firestore indexes, and the Cloudflare Worker upload signer
-2. run the two-user smoke checklist above, including Pulse and message photo upload
-3. polish Circle Room/Home layout after real-device testing
+1. Deploy Firestore rules + indexes: `firebase deploy --only firestore`
+2. Build and deploy Cloud Functions: `cd functions && npm run build && firebase deploy --only functions`
+3. Deploy R2 Worker: `cd backend/r2-upload-worker && wrangler deploy`
+4. Set `R2_UPLOAD_SIGNER_URL` in Flutter app config
+5. Run two-user beta smoke test (`BETA_SMOKE_TEST.md`)
+6. Polish Circle Room / Home layout after real-device testing

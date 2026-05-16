@@ -124,13 +124,8 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                             maxLines: 3,
                           ),
                           const SizedBox(height: 14),
-                          SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            value: true,
-                            onChanged: (_) {},
-                            title: const Text('Allow others to invite friends'),
-                            activeThumbColor: CirclePulseColors.clay,
-                          ),
+                          // Placeholder for a future "open invitation" toggle.
+                          // Removed from UI until the feature is implemented.
                         ],
                       ),
                     ),
