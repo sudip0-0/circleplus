@@ -72,6 +72,27 @@ class MessageController extends AsyncNotifier<void> {
     _logState('message.sendPhoto', {'circleId': circleId});
   }
 
+  Future<void> softDeleteMessage({
+    required String circleId,
+    required String messageId,
+    required String senderId,
+  }) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() {
+      return ref
+          .read(messageRepositoryProvider)
+          .softDeleteMessage(
+            circleId: circleId,
+            messageId: messageId,
+            senderId: senderId,
+          );
+    });
+    _logState('message.softDelete', {
+      'circleId': circleId,
+      'messageId': messageId,
+    });
+  }
+
   Future<AppUser> _requireProfile() async {
     final user = ref.read(currentUserProvider);
     if (user == null) {

@@ -31,4 +31,20 @@ abstract interface class PlanRepository {
     required PlanResponseValue response,
     required String? comment,
   });
+
+  /// Updates the editable fields of a Plan. Only the creator may call this.
+  Future<void> editPlan({
+    required String circleId,
+    required String planId,
+    required String title,
+    required String? description,
+    required String? location,
+    required DateTime startsAt,
+  });
+
+  /// Marks a Plan as cancelled. Only the creator may call this.
+  Future<void> cancelPlan({
+    required String circleId,
+    required String planId,
+  });
 }

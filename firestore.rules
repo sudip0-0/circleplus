@@ -268,8 +268,17 @@ service cloud.firestore {
             || request.resource.data.mediaUrl is string
           );
 
-        // Messages are immutable from the client.
-        allow update, delete: if false;
+        // The sender may soft-delete their own message (type → 'deleted',
+        // text/mediaUrl cleared). Only those four fields may change.
+        allow update: if isCircleMember(circleId)
+          && resource.data.senderId == request.auth.uid
+          && changedOnly(['type', 'text', 'mediaUrl', 'deletedAt'])
+          && request.resource.data.type == 'deleted'
+          && !('text' in request.resource.data)
+          && !('mediaUrl' in request.resource.data);
+
+        // Messages cannot be hard-deleted via the client.
+        allow delete: if false;
       }
 
       // ── /circles/{circleId}/pulses/{pulseId} ─────────────────────────────
@@ -313,11 +322,30 @@ service cloud.firestore {
           && request.resource.data.title is string
           && request.resource.data.title.size() >= 1;
 
-        // The only permitted plan update is a response-count adjustment,
-        // which must be proven consistent with the staged response document.
-        allow update: if isCircleMember(circleId)
-          && changedOnly(['inCount', 'maybeCount', 'cantCount', 'updatedAt'])
-          && validPlanCountUpdate(circleId, planId);
+        // Permitted plan updates – three cases:
+        //
+        // Case 1 – Response-count adjustment: any member may update the count
+        //          fields, proven consistent with the staged response document.
+        // Case 2 – Creator edit: the creator may update editable content fields.
+        // Case 3 – Creator cancel: the creator may flip status to 'cancelled'.
+        allow update: if (
+            isCircleMember(circleId)
+            && changedOnly(['inCount', 'maybeCount', 'cantCount', 'updatedAt'])
+            && validPlanCountUpdate(circleId, planId)
+          ) || (
+            isCircleMember(circleId)
+            && resource.data.createdBy == request.auth.uid
+            && resource.data.status == 'active'
+            && changedOnly(['title', 'description', 'location', 'startsAt', 'updatedAt'])
+            && request.resource.data.title is string
+            && request.resource.data.title.size() >= 1
+          ) || (
+            isCircleMember(circleId)
+            && resource.data.createdBy == request.auth.uid
+            && resource.data.status == 'active'
+            && changedOnly(['status', 'updatedAt'])
+            && request.resource.data.status == 'cancelled'
+          );
 
         // Plans cannot be deleted via the client.
         allow delete: if false;

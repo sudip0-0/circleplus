@@ -139,6 +139,37 @@ class FirebasePlanRepository implements PlanRepository {
     });
   }
 
+  @override
+  Future<void> editPlan({
+    required String circleId,
+    required String planId,
+    required String title,
+    required String? description,
+    required String? location,
+    required DateTime startsAt,
+  }) async {
+    final planRef = _circles.doc(circleId).collection('plans').doc(planId);
+    await planRef.update({
+      'title': title.trim(),
+      'description': _blankToNull(description),
+      'location': _blankToNull(location),
+      'startsAt': startsAt,
+      'updatedAt': DateTime.now(),
+    });
+  }
+
+  @override
+  Future<void> cancelPlan({
+    required String circleId,
+    required String planId,
+  }) async {
+    final planRef = _circles.doc(circleId).collection('plans').doc(planId);
+    await planRef.update({
+      'status': PlanStatus.cancelled.name,
+      'updatedAt': DateTime.now(),
+    });
+  }
+
   String? _blankToNull(String? value) {
     final trimmed = value?.trim();
     if (trimmed == null || trimmed.isEmpty) {

@@ -104,6 +104,43 @@ class PlanController extends AsyncNotifier<void> {
     });
   }
 
+  Future<void> editPlan({
+    required String circleId,
+    required String planId,
+    required String title,
+    required String? description,
+    required String? location,
+    required DateTime startsAt,
+  }) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() {
+      return ref
+          .read(planRepositoryProvider)
+          .editPlan(
+            circleId: circleId,
+            planId: planId,
+            title: title,
+            description: description,
+            location: location,
+            startsAt: startsAt,
+          );
+    });
+    _logState('plan.edit', {'circleId': circleId, 'planId': planId});
+  }
+
+  Future<void> cancelPlan({
+    required String circleId,
+    required String planId,
+  }) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() {
+      return ref
+          .read(planRepositoryProvider)
+          .cancelPlan(circleId: circleId, planId: planId);
+    });
+    _logState('plan.cancel', {'circleId': circleId, 'planId': planId});
+  }
+
   Future<AppUser> _requireProfile() async {
     final user = ref.read(currentUserProvider);
     if (user == null) {

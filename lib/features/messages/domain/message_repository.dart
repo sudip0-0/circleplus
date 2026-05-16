@@ -16,4 +16,12 @@ abstract interface class MessageRepository {
     required String? text,
     required AppUser sender,
   });
+
+  /// Soft-deletes a message by overwriting it with a 'deleted' type and
+  /// clearing content fields. Only the original sender may call this.
+  Future<void> softDeleteMessage({
+    required String circleId,
+    required String messageId,
+    required String senderId,
+  });
 }

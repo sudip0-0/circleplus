@@ -100,6 +100,24 @@ class FirebaseMessageRepository implements MessageRepository {
     await batch.commit();
   }
 
+  @override
+  Future<void> softDeleteMessage({
+    required String circleId,
+    required String messageId,
+    required String senderId,
+  }) async {
+    final messageRef = _circles
+        .doc(circleId)
+        .collection('messages')
+        .doc(messageId);
+    await messageRef.update({
+      'type': 'deleted',
+      'text': null,
+      'mediaUrl': null,
+      'deletedAt': DateTime.now(),
+    });
+  }
+
   String? _blankToNull(String? value) {
     final trimmed = value?.trim();
     if (trimmed == null || trimmed.isEmpty) {

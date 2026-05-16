@@ -89,6 +89,7 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [x] Implement photo message upload
 - [x] Update Circle lastMessage fields
 - [x] Add empty message state
+- [x] Implement delete-own-message (soft delete — type 'deleted', content cleared, placeholder shown)
 
 ### 6. Pulses
 
@@ -117,14 +118,20 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [x] Build Create Plan Screen
 - [x] Build Plan Detail Screen
 - [x] Add empty Plans state
+- [x] Implement plan edit (creator-only: title, description, location, startsAt)
+- [x] Implement plan cancel (creator-only: sets status to 'cancelled', disables response buttons)
+- [x] Show cancelled banner in Plan Detail Screen
 
 ### 8. Notifications
 
 - [x] Request notification permission
 - [x] Store FCM token
 - [x] Create placeholder notification service/repository abstractions
-- [ ] Prepare notification event types
-- [ ] Add placeholder for future Cloud Functions
+- [x] Implement Cloud Functions for push notifications (functions/src/index.ts)
+  - onNewMessage: notifies all Circle members (except sender) when a new message is sent
+  - onNewPlan: notifies all Circle members (except creator) when a new plan is created
+  - Stale FCM token cleanup on send failure
+- [ ] Deploy Cloud Functions: `cd functions && npm run build && firebase deploy --only functions`
 
 ### 9. Firebase Security
 
@@ -143,6 +150,9 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [x] Audit and finalize production-ready Firestore rules (Phase 4 hardening)
 - [x] Add composite index for plans (status + startsAt)
 - [x] Harden R2 Worker: pinned presigned URL expiry, explicit extension allow-list, content-length guard, structured logging
+- [x] Add message soft-delete rule (sender may flip type to 'deleted' and clear content fields)
+- [x] Add plan edit rule (creator may change title/description/location/startsAt while active)
+- [x] Add plan cancel rule (creator may flip status to 'cancelled' while active)
 - [ ] Deploy Firestore rules: `firebase deploy --only firestore:rules`
 - [ ] Deploy Firestore indexes: `firebase deploy --only firestore:indexes`
 - [ ] Deploy R2 Worker: `wrangler deploy` (from backend/r2-upload-worker)
@@ -161,6 +171,9 @@ Firestore indexes are configured locally in `firestore.indexes.json`. Required i
 - [x] Test model serialization
 - [x] Test media upload metadata helpers
 - [x] Test Plan response aggregation logic
+- [x] Test MessageModel soft-delete (isDeleted getter, deletedAt round-trip)
+- [x] Test PlanModel cancelled status round-trip
+- [x] Test PlanStatus.fromName edge cases
 - [ ] Test auth routing logic
 
 ### 11. UI Polish
@@ -246,7 +259,7 @@ These do not block MVP:
 4. Should Plans support multiple suggested times in MVP?
 5. Should a user be allowed to post the same Pulse to multiple Circles?
 6. Should photo messages and Pulse photos have retention limits?
-7. Should users be able to delete messages?
+7. ~~Should users be able to delete messages?~~ Resolved: senders can soft-delete their own messages.
 
 ## Current Assumptions
 

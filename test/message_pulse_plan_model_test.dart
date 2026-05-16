@@ -26,6 +26,54 @@ void main() {
     expect(restored.type, MessageType.text);
     expect(restored.text, message.text);
     expect(restored.createdAt, now);
+    expect(restored.isDeleted, isFalse);
+  });
+
+  test('MessageModel soft-delete: isDeleted true when type is deleted', () {
+    final now = DateTime(2026, 5, 13, 10, 15);
+    final deleted = MessageModel(
+      id: 'message-2',
+      circleId: 'circle-1',
+      senderId: 'user-1',
+      senderName: 'Sudip',
+      senderPhotoUrl: null,
+      type: MessageType.deleted,
+      text: null,
+      mediaUrl: null,
+      createdAt: now,
+      updatedAt: null,
+      deletedAt: now,
+    );
+
+    expect(deleted.isDeleted, isTrue);
+    expect(deleted.text, isNull);
+    expect(deleted.mediaUrl, isNull);
+
+    final restored = MessageModel.fromMap(deleted.toMap());
+    expect(restored.type, MessageType.deleted);
+    expect(restored.isDeleted, isTrue);
+    expect(restored.deletedAt, now);
+  });
+
+  test('MessageModel soft-delete: deletedAt field round-trips correctly', () {
+    final now = DateTime(2026, 5, 14, 8, 0);
+    final original = MessageModel(
+      id: 'msg-3',
+      circleId: 'circle-1',
+      senderId: 'user-2',
+      senderName: 'Alice',
+      senderPhotoUrl: null,
+      type: MessageType.deleted,
+      text: null,
+      mediaUrl: null,
+      createdAt: now,
+      updatedAt: null,
+      deletedAt: now,
+    );
+    final map = original.toMap();
+    final restored = MessageModel.fromMap(map);
+    expect(restored.deletedAt, now);
+    expect(restored.isDeleted, isTrue);
   });
 
   test('PulseModel serializes and uses daily document id', () {
@@ -77,6 +125,40 @@ void main() {
     expect(restored.status, PlanStatus.active);
     expect(restored.inCount, 1);
     expect(restored.startsAt, plan.startsAt);
+  });
+
+  test('PlanModel cancelled status round-trips correctly', () {
+    final now = DateTime(2026, 5, 14, 9, 0);
+    final plan = PlanModel(
+      id: 'plan-2',
+      circleId: 'circle-1',
+      createdBy: 'user-1',
+      createdByName: 'Sudip',
+      title: 'Picnic',
+      description: null,
+      location: null,
+      startsAt: now.add(const Duration(days: 3)),
+      status: PlanStatus.cancelled,
+      inCount: 2,
+      maybeCount: 1,
+      cantCount: 0,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final restored = PlanModel.fromMap(plan.toMap());
+
+    expect(restored.status, PlanStatus.cancelled);
+    expect(restored.title, 'Picnic');
+  });
+
+  test('PlanStatus.fromName handles unknown values gracefully', () {
+    expect(PlanStatus.fromName('active'), PlanStatus.active);
+    expect(PlanStatus.fromName('cancelled'), PlanStatus.cancelled);
+    expect(PlanStatus.fromName('completed'), PlanStatus.completed);
+    // Unknown value defaults to active.
+    expect(PlanStatus.fromName('unknown'), PlanStatus.active);
+    expect(PlanStatus.fromName(null), PlanStatus.active);
   });
 
   test(

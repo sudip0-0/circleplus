@@ -1,7 +1,8 @@
 enum MessageType {
   text,
   photo,
-  system;
+  system,
+  deleted;
 
   static MessageType fromName(String? value) {
     return MessageType.values.firstWhere(
@@ -23,6 +24,7 @@ class MessageModel {
     required this.mediaUrl,
     required this.createdAt,
     required this.updatedAt,
+    this.deletedAt,
   });
 
   final String id;
@@ -35,6 +37,10 @@ class MessageModel {
   final String? mediaUrl;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  // Non-null when the sender has soft-deleted the message.
+  final DateTime? deletedAt;
+
+  bool get isDeleted => type == MessageType.deleted || deletedAt != null;
 
   Map<String, Object?> toMap() {
     return {
@@ -48,6 +54,7 @@ class MessageModel {
       'mediaUrl': mediaUrl,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
+      'deletedAt': deletedAt,
     };
   }
 
@@ -63,6 +70,7 @@ class MessageModel {
       mediaUrl: map['mediaUrl'] as String?,
       createdAt: _readDate(map['createdAt']),
       updatedAt: _readNullableDate(map['updatedAt']),
+      deletedAt: _readNullableDate(map['deletedAt']),
     );
   }
 }

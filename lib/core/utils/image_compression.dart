@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -45,8 +44,8 @@ Future<Uint8List> _compressInIsolate(Uint8List input) async {
 Future<Uint8List> _resizeAndEncode(Uint8List bytes, int maxDim) async {
   final codec = await ui.instantiateImageCodec(
     bytes,
-    targetMaxWidthPx: maxDim,
-    targetMaxHeightPx: maxDim,
+    targetWidth: maxDim,
+    targetHeight: maxDim,
   );
   final frame = await codec.getNextFrame();
   final image = frame.image;
