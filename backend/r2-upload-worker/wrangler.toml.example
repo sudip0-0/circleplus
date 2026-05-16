@@ -2,13 +2,33 @@ name = "circlepulse-r2-upload-worker"
 main = "src/index.ts"
 compatibility_date = "2026-05-13"
 
+# ── Plaintext vars (safe to commit) ──────────────────────────────────────────
 [vars]
 FIREBASE_PROJECT_ID = "circleapp-3d792"
-R2_ACCOUNT_ID = "your-cloudflare-account-id"
-R2_BUCKET_NAME = "your-r2-bucket-name"
-R2_PUBLIC_BASE_URL = "https://media.example.com"
-ALLOWED_ORIGIN = "http://localhost:3000"
+R2_ACCOUNT_ID       = "your-cloudflare-account-id"
+R2_BUCKET_NAME      = "your-r2-bucket-name"
+R2_PUBLIC_BASE_URL  = "https://media.your-domain.com"
 
-# Set secrets with:
+# For mobile-only (Flutter) deployments CORS is not enforced by the browser,
+# but set this to your web origin if you ever add a web client.
+# Leave blank or omit to allow all origins (fine for mobile-only MVP).
+ALLOWED_ORIGIN = ""
+
+# ── Secrets (never commit — set via wrangler CLI) ─────────────────────────────
+#
 # wrangler secret put R2_ACCESS_KEY_ID
 # wrangler secret put R2_SECRET_ACCESS_KEY
+#
+# R2_ACCESS_KEY_ID     — R2 API token Access Key ID (from Cloudflare dashboard)
+# R2_SECRET_ACCESS_KEY — R2 API token Secret Access Key
+
+# ── Notes ─────────────────────────────────────────────────────────────────────
+#
+# 1. Copy this file to wrangler.toml and fill in the real values.
+# 2. Do NOT commit wrangler.toml (it is in .gitignore).
+# 3. The R2 bucket should have:
+#    - Public access enabled (so Flutter can display uploaded images)
+#    - A custom domain configured as R2_PUBLIC_BASE_URL
+#    - Max object size set in Cloudflare dashboard (recommended: 10 MB)
+# 4. Deploy with: wrangler deploy
+# 5. Test with: wrangler dev (uses local R2 emulation)

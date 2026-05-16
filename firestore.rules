@@ -2,6 +2,9 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ─── Auth helpers ────────────────────────────────────────────────────────
+
     function signedIn() {
       return request.auth != null;
     }
@@ -10,16 +13,18 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    // ─── Path helpers ─────────────────────────────────────────────────────────
+
     function circlePath(circleId) {
       return /databases/$(database)/documents/circles/$(circleId);
     }
 
-    function planPath(circleId, planId) {
-      return /databases/$(database)/documents/circles/$(circleId)/plans/$(planId);
-    }
-
     function memberPath(circleId, userId) {
       return /databases/$(database)/documents/circles/$(circleId)/members/$(userId);
+    }
+
+    function planPath(circleId, planId) {
+      return /databases/$(database)/documents/circles/$(circleId)/plans/$(planId);
     }
 
     function planResponsePath(circleId, planId, userId) {
@@ -30,10 +35,15 @@ service cloud.firestore {
       return /databases/$(database)/documents/inviteCodes/$(code);
     }
 
+    // ─── Membership helpers ───────────────────────────────────────────────────
+
+    // True when the signed-in user already has a member document in this Circle.
     function isCircleMember(circleId) {
       return signedIn() && exists(memberPath(circleId, request.auth.uid));
     }
 
+    // True during a batch/transaction where the user is simultaneously creating
+    // their own member document (role = 'member', not yet in the Circle).
     function isJoiningCircle(circleId) {
       return signedIn()
         && !exists(memberPath(circleId, request.auth.uid))
@@ -41,84 +51,132 @@ service cloud.firestore {
         && getAfter(memberPath(circleId, request.auth.uid)).data.role == 'member';
     }
 
+    // ─── Field-change guard ───────────────────────────────────────────────────
+
+    // Ensure only the listed keys are changed in an update.
     function changedOnly(keys) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
     }
+
+    // ─── Invite code helpers ──────────────────────────────────────────────────
 
     function validInviteCode(code) {
       return code.matches('^[A-Z0-9]{6}$');
     }
 
-    function responseCountValue(response, value) {
-      return response == value ? 1 : 0;
+    // ─── Plan response-count helpers ──────────────────────────────────────────
+
+    function responseValue(r, target) {
+      return r == target ? 1 : 0;
     }
 
+    // Called when the PLAN document is updated as part of a response transaction.
+    // Verifies the count deltas are exactly correct given the previous and next
+    // response values that are staged in the same commit.
     function validPlanCountUpdate(circleId, planId) {
-      let responsePath = planResponsePath(circleId, planId, request.auth.uid);
-      let previousResponse = exists(responsePath) ? get(responsePath).data.response : '';
-      let nextResponse = getAfter(responsePath).data.response;
+      let rPath = planResponsePath(circleId, planId, request.auth.uid);
+      let prev  = exists(rPath) ? get(rPath).data.response : '';
+      let next  = getAfter(rPath).data.response;
       return isCircleMember(circleId)
-        && getAfter(responsePath).data.userId == request.auth.uid
-        && nextResponse in ['in', 'maybe', 'cant']
-        && request.resource.data.inCount == resource.data.inCount
-          + responseCountValue(nextResponse, 'in')
-          - responseCountValue(previousResponse, 'in')
+        && getAfter(rPath).data.userId == request.auth.uid
+        && next in ['in', 'maybe', 'cant']
+        && request.resource.data.inCount    == resource.data.inCount
+             + responseValue(next, 'in')    - responseValue(prev, 'in')
         && request.resource.data.maybeCount == resource.data.maybeCount
-          + responseCountValue(nextResponse, 'maybe')
-          - responseCountValue(previousResponse, 'maybe')
-        && request.resource.data.cantCount == resource.data.cantCount
-          + responseCountValue(nextResponse, 'cant')
-          - responseCountValue(previousResponse, 'cant');
+             + responseValue(next, 'maybe') - responseValue(prev, 'maybe')
+        && request.resource.data.cantCount  == resource.data.cantCount
+             + responseValue(next, 'cant')  - responseValue(prev, 'cant');
     }
 
+    // Called when the RESPONSE document is written.
+    // Verifies the corresponding plan document counts are staged correctly.
     function validPlanCountsAfterResponse(circleId, planId, userId) {
-      let responsePath = planResponsePath(circleId, planId, userId);
-      let previousResponse = exists(responsePath) ? get(responsePath).data.response : '';
-      let nextResponse = request.resource.data.response;
-      return getAfter(planPath(circleId, planId)).data.inCount == get(planPath(circleId, planId)).data.inCount
-          + responseCountValue(nextResponse, 'in')
-          - responseCountValue(previousResponse, 'in')
-        && getAfter(planPath(circleId, planId)).data.maybeCount == get(planPath(circleId, planId)).data.maybeCount
-          + responseCountValue(nextResponse, 'maybe')
-          - responseCountValue(previousResponse, 'maybe')
-        && getAfter(planPath(circleId, planId)).data.cantCount == get(planPath(circleId, planId)).data.cantCount
-          + responseCountValue(nextResponse, 'cant')
-          - responseCountValue(previousResponse, 'cant');
+      let rPath = planResponsePath(circleId, planId, userId);
+      let prev  = exists(rPath) ? get(rPath).data.response : '';
+      let next  = request.resource.data.response;
+      return
+        getAfter(planPath(circleId, planId)).data.inCount ==
+          get(planPath(circleId, planId)).data.inCount
+          + responseValue(next, 'in')    - responseValue(prev, 'in')
+        && getAfter(planPath(circleId, planId)).data.maybeCount ==
+          get(planPath(circleId, planId)).data.maybeCount
+          + responseValue(next, 'maybe') - responseValue(prev, 'maybe')
+        && getAfter(planPath(circleId, planId)).data.cantCount ==
+          get(planPath(circleId, planId)).data.cantCount
+          + responseValue(next, 'cant')  - responseValue(prev, 'cant');
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // /users/{userId}
+    // ─────────────────────────────────────────────────────────────────────────
 
     match /users/{userId} {
+      // Users can only read and write their own profile.
       allow read: if isSelf(userId);
 
       allow create: if isSelf(userId)
-        && request.resource.data.id == userId;
+        && request.resource.data.id == userId
+        // Require mandatory fields to be present on creation.
+        && request.resource.data.displayName is string
+        && request.resource.data.email is string;
 
       allow update: if isSelf(userId)
-        && request.resource.data.id == userId;
+        && request.resource.data.id == userId
+        // Prevent escalation: id and email must not be changed.
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.email == resource.data.email;
 
       allow delete: if false;
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // /inviteCodes/{code}
+    // ─────────────────────────────────────────────────────────────────────────
+
     match /inviteCodes/{code} {
+      // Any signed-in user may look up a valid invite code (needed for join flow).
       allow get: if signedIn() && validInviteCode(code);
+
+      // Listing all invite codes is forbidden.
       allow list: if false;
 
+      // Only the Circle creator may create invite codes, proven atomically
+      // by requiring the Circle document to be created in the same batch.
       allow create: if signedIn()
         && validInviteCode(code)
         && request.resource.data.code == code
         && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.circleId is string
         && getAfter(circlePath(request.resource.data.circleId)).data.createdBy == request.auth.uid;
 
+      // Invite codes are immutable and cannot be deleted.
       allow update, delete: if false;
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // /circles/{circleId}
+    // ─────────────────────────────────────────────────────────────────────────
+
     match /circles/{circleId} {
+      // Only members can see the Circle document.
       allow read: if isCircleMember(circleId);
 
+      // Create: the requesting user must be the declared creator and must
+      // seed memberCount = 1 atomically.
       allow create: if signedIn()
         && request.resource.data.id == circleId
         && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.memberCount == 1;
+        && request.resource.data.memberCount == 1
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 64;
 
+      // Update: two permitted cases only.
+      //
+      // Case 1 – Join increment: a user is atomically joining and bumps
+      //           memberCount by exactly 1.
+      // Case 2 – Last-message update: any member may update the lastMessage
+      //           preview fields after sending a message.
       allow update: if (
           signedIn()
           && changedOnly(['memberCount', 'updatedAt'])
@@ -129,11 +187,21 @@ service cloud.firestore {
           && changedOnly(['lastMessageText', 'lastMessageAt', 'updatedAt'])
         );
 
+      // Circles cannot be deleted via the client (admin-only operation).
       allow delete: if false;
 
+      // ── /circles/{circleId}/members/{userId} ─────────────────────────────
+
       match /members/{userId} {
+        // All members can read the member list (needed for member-list screen).
         allow read: if isCircleMember(circleId);
 
+        // Create: two cases.
+        //
+        // Case 1 – Creator: user is creating the Circle in the same batch
+        //          (getAfter verifies the circle.createdBy == userId).
+        // Case 2 – Joining member: must supply a valid invite code that
+        //          resolves to this Circle.
         allow create: if isSelf(userId)
           && request.resource.data.userId == userId
           && request.resource.data.circleId == circleId
@@ -149,61 +217,118 @@ service cloud.firestore {
             )
           );
 
+        // Members cannot update or delete their membership via the client.
+        // (Leave-Circle and kick are future admin-panel operations.)
         allow update, delete: if false;
       }
 
+      // ── /circles/{circleId}/messages/{messageId} ─────────────────────────
+
       match /messages/{messageId} {
+        // Only Circle members can read messages.
         allow read: if isCircleMember(circleId);
 
+        // Only Circle members can send messages; sender identity is enforced.
         allow create: if isCircleMember(circleId)
           && request.resource.data.id == messageId
           && request.resource.data.circleId == circleId
           && request.resource.data.senderId == request.auth.uid
-          && request.resource.data.type in ['text', 'photo', 'system'];
+          && request.resource.data.type in ['text', 'photo', 'system']
+          // Prevent empty text messages.
+          && (
+            request.resource.data.type != 'text'
+            || (
+              request.resource.data.text is string
+              && request.resource.data.text.size() >= 1
+            )
+          )
+          // Photo messages must supply a mediaUrl.
+          && (
+            request.resource.data.type != 'photo'
+            || request.resource.data.mediaUrl is string
+          );
 
+        // Messages are immutable from the client.
         allow update, delete: if false;
       }
 
+      // ── /circles/{circleId}/pulses/{pulseId} ─────────────────────────────
+
       match /pulses/{pulseId} {
+        // Only Circle members can see Pulses.
         allow read: if isCircleMember(circleId);
 
+        // Create or update (upsert): user can only write their own Pulse for
+        // today, enforced by the document ID format yyyyMMdd_userId.
         allow create, update: if isCircleMember(circleId)
           && request.resource.data.id == pulseId
           && request.resource.data.circleId == circleId
           && request.resource.data.userId == request.auth.uid
-          && pulseId.matches('^[0-9]{8}_' + request.auth.uid + '$');
+          && pulseId.matches('^[0-9]{8}_' + request.auth.uid + '$')
+          // Photo URL must be provided.
+          && request.resource.data.photoUrl is string
+          && request.resource.data.photoUrl.size() >= 1;
 
+        // A user may delete their own Pulse.
         allow delete: if isCircleMember(circleId)
           && resource.data.userId == request.auth.uid;
       }
 
+      // ── /circles/{circleId}/plans/{planId} ───────────────────────────────
+
       match /plans/{planId} {
+        // Only Circle members can see Plans.
         allow read: if isCircleMember(circleId);
 
+        // Any Circle member can create a Plan.
         allow create: if isCircleMember(circleId)
           && request.resource.data.id == planId
           && request.resource.data.circleId == circleId
           && request.resource.data.createdBy == request.auth.uid
-          && request.resource.data.status == 'active';
+          && request.resource.data.status == 'active'
+          // Response counts must be zeroed on creation.
+          && request.resource.data.inCount == 0
+          && request.resource.data.maybeCount == 0
+          && request.resource.data.cantCount == 0
+          && request.resource.data.title is string
+          && request.resource.data.title.size() >= 1;
 
-        allow update: if changedOnly(['inCount', 'maybeCount', 'cantCount', 'updatedAt'])
+        // The only permitted plan update is a response-count adjustment,
+        // which must be proven consistent with the staged response document.
+        allow update: if isCircleMember(circleId)
+          && changedOnly(['inCount', 'maybeCount', 'cantCount', 'updatedAt'])
           && validPlanCountUpdate(circleId, planId);
 
+        // Plans cannot be deleted via the client.
         allow delete: if false;
 
+        // ── /circles/{circleId}/plans/{planId}/responses/{userId} ──────────
+
         match /responses/{userId} {
+          // All Circle members can see who responded and how.
           allow read: if isCircleMember(circleId);
 
+          // A member may create or update their own response.
+          // The plan's count fields must be updated in the same transaction.
           allow create, update: if isCircleMember(circleId)
             && isSelf(userId)
             && request.resource.data.userId == userId
             && request.resource.data.response in ['in', 'maybe', 'cant']
             && validPlanCountsAfterResponse(circleId, planId, userId);
 
+          // Responses cannot be deleted.
           allow delete: if false;
         }
       }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Collection-group: members
+    //
+    // Allows the Home screen to query collectionGroup('members').where('userId')
+    // to find all Circles a user belongs to. The rule is scoped to documents
+    // where the stored userId matches the requester, so no cross-user leakage.
+    // ─────────────────────────────────────────────────────────────────────────
 
     match /{path=**}/members/{memberId} {
       allow read: if signedIn() && resource.data.userId == request.auth.uid;

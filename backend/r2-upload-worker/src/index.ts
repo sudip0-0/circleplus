@@ -1,6 +1,8 @@
 import { AwsClient } from 'aws4fetch';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
+// ─── Environment ─────────────────────────────────────────────────────────────
+
 type Env = {
   FIREBASE_PROJECT_ID: string;
   R2_ACCOUNT_ID: string;
@@ -11,6 +13,8 @@ type Env = {
   ALLOWED_ORIGIN?: string;
 };
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 type UploadType = 'avatar' | 'circleCover' | 'messagePhoto' | 'pulsePhoto';
 
 type SignRequest = {
@@ -18,6 +22,7 @@ type SignRequest = {
   contentType?: string;
   fileExtension?: string;
   circleId?: string;
+  contentLength?: number;
 };
 
 type VerifiedFirebaseUser = {
@@ -25,54 +30,90 @@ type VerifiedFirebaseUser = {
   token: string;
 };
 
+// ─── Upload policy ────────────────────────────────────────────────────────────
+
+// Maximum allowed upload size in bytes.
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+
+// Presigned URL expiry in seconds (5 minutes is enough for the Flutter upload).
+const PRESIGNED_URL_EXPIRY_SECONDS = 300;
+
+// Allowed MIME types.
+const ALLOWED_MIME_PREFIX = 'image/';
+
+// Allowed file extensions (explicit allow-list).
+const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif']);
+
+// ─── JWKS cache (module-level, reused across invocations) ────────────────────
+
 const firebaseJwks = createRemoteJWKSet(
-  new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'),
+  new URL(
+    'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com',
+  ),
 );
+
+// ─── Entry point ─────────────────────────────────────────────────────────────
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const corsHeaders = buildCorsHeaders(env);
 
+    // CORS preflight
     if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
+      return new Response(null, { status: 204, headers: corsHeaders });
     }
 
     if (request.method !== 'POST') {
-      return json({ error: 'Method not allowed' }, 405, corsHeaders);
+      return errorJson('Method not allowed', 405, corsHeaders);
     }
+
+    // ── 1. Verify Firebase ID token ─────────────────────────────────────────
 
     const firebaseUser = await verifyFirebaseUser(request, env);
     if (!firebaseUser) {
-      return json({ error: 'Unauthorized' }, 401, corsHeaders);
+      return errorJson('Unauthorized', 401, corsHeaders);
     }
+
+    // ── 2. Parse and validate request body ──────────────────────────────────
 
     let body: SignRequest;
     try {
       body = (await request.json()) as SignRequest;
     } catch {
-      return json({ error: 'Invalid JSON body' }, 400, corsHeaders);
+      return errorJson('Invalid JSON body', 400, corsHeaders);
     }
 
     const validationError = validateSignRequest(body);
     if (validationError) {
-      return json({ error: validationError }, 400, corsHeaders);
+      return errorJson(validationError, 400, corsHeaders);
     }
 
+    // ── 3. Circle membership check for Circle-scoped media ──────────────────
+
     if (isCircleMediaType(body.type!)) {
+      let isMember: boolean;
       try {
-        const isMember = await verifyCircleMembership({
+        isMember = await verifyCircleMembership({
           env,
           firebaseIdToken: firebaseUser.token,
           circleId: body.circleId!,
           userId: firebaseUser.userId,
         });
-        if (!isMember) {
-          return json({ error: 'Circle membership required' }, 403, corsHeaders);
-        }
-      } catch {
-        return json({ error: 'Could not verify Circle membership' }, 503, corsHeaders);
+      } catch (err) {
+        console.error('membership_check_failed', {
+          circleId: body.circleId,
+          userId: firebaseUser.userId,
+          error: String(err),
+        });
+        return errorJson('Could not verify Circle membership', 503, corsHeaders);
+      }
+
+      if (!isMember) {
+        return errorJson('Circle membership required', 403, corsHeaders);
       }
     }
+
+    // ── 4. Build object key ──────────────────────────────────────────────────
 
     const extension = normalizeExtension(body.fileExtension!);
     const objectKey = buildObjectKey({
@@ -82,6 +123,8 @@ export default {
       extension,
     });
 
+    // ── 5. Sign the R2 PUT URL ───────────────────────────────────────────────
+
     const aws = new AwsClient({
       accessKeyId: env.R2_ACCESS_KEY_ID,
       secretAccessKey: env.R2_SECRET_ACCESS_KEY,
@@ -90,15 +133,28 @@ export default {
     });
 
     const uploadUrl = `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${env.R2_BUCKET_NAME}/${objectKey}`;
+
     const signed = await aws.sign(uploadUrl, {
       method: 'PUT',
       headers: {
         'content-type': body.contentType!,
       },
-      aws: { signQuery: true },
+      aws: {
+        signQuery: true,
+        // Pin expiry to a short window so leaked URLs cannot be replayed.
+        expiresIn: PRESIGNED_URL_EXPIRY_SECONDS,
+      },
     });
 
-    return json(
+    // ── 6. Return signed URL + public URL ────────────────────────────────────
+
+    console.log('sign_request_ok', {
+      type: body.type,
+      userId: firebaseUser.userId,
+      objectKey,
+    });
+
+    return okJson(
       {
         uploadUrl: signed.url,
         publicUrl: `${trimTrailingSlash(env.R2_PUBLIC_BASE_URL)}/${objectKey}`,
@@ -107,12 +163,15 @@ export default {
         headers: {
           'content-type': body.contentType,
         },
+        expiresInSeconds: PRESIGNED_URL_EXPIRY_SECONDS,
       },
       200,
       corsHeaders,
     );
   },
 };
+
+// ─── Firebase token verification ─────────────────────────────────────────────
 
 async function verifyFirebaseUser(
   request: Request,
@@ -123,41 +182,65 @@ async function verifyFirebaseUser(
   if (!match) {
     return null;
   }
+  const rawToken = match[1];
 
   try {
     const issuer = `https://securetoken.google.com/${env.FIREBASE_PROJECT_ID}`;
-    const verified = await jwtVerify(match[1], firebaseJwks, {
+    const verified = await jwtVerify(rawToken, firebaseJwks, {
       issuer,
       audience: env.FIREBASE_PROJECT_ID,
     });
-    if (typeof verified.payload.sub !== 'string') {
+    if (typeof verified.payload.sub !== 'string' || !verified.payload.sub) {
       return null;
     }
-    return { userId: verified.payload.sub, token: match[1] };
+    return { userId: verified.payload.sub, token: rawToken };
   } catch {
     return null;
   }
 }
 
+// ─── Request validation ───────────────────────────────────────────────────────
+
 function validateSignRequest(body: SignRequest): string | null {
-  if (!body.type || !['avatar', 'circleCover', 'messagePhoto', 'pulsePhoto'].includes(body.type)) {
-    return 'Invalid upload type';
+  const validTypes: UploadType[] = ['avatar', 'circleCover', 'messagePhoto', 'pulsePhoto'];
+  if (!body.type || !validTypes.includes(body.type)) {
+    return 'Invalid upload type. Must be one of: avatar, circleCover, messagePhoto, pulsePhoto';
   }
-  if (!body.contentType?.startsWith('image/')) {
+
+  if (!body.contentType || !body.contentType.startsWith(ALLOWED_MIME_PREFIX)) {
     return 'Only image uploads are allowed';
   }
-  if (!body.fileExtension || !/^[a-z0-9]{2,5}$/i.test(body.fileExtension)) {
+
+  if (!body.fileExtension || !/^\.?[a-zA-Z0-9]{2,5}$/.test(body.fileExtension)) {
     return 'Invalid file extension';
   }
-  if (
-    isCircleMediaType(body.type) &&
-    !body.circleId
-  ) {
+
+  const normalizedExt = normalizeExtension(body.fileExtension);
+  if (!ALLOWED_EXTENSIONS.has(normalizedExt)) {
+    return `File extension not allowed. Allowed: ${[...ALLOWED_EXTENSIONS].join(', ')}`;
+  }
+
+  if (isCircleMediaType(body.type) && !body.circleId) {
     return 'circleId is required for Circle media';
   }
-  if (body.circleId && body.circleId.includes('/')) {
-    return 'Invalid Circle ID';
+
+  if (body.circleId) {
+    // Prevent path traversal or injection in the object key.
+    if (body.circleId.includes('/') || body.circleId.includes('..') || body.circleId.length > 128) {
+      return 'Invalid circleId';
+    }
   }
+
+  if (body.contentLength !== undefined) {
+    if (
+      typeof body.contentLength !== 'number' ||
+      body.contentLength <= 0 ||
+      body.contentLength > MAX_UPLOAD_BYTES
+    ) {
+      return `File too large. Maximum allowed size is ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB`;
+    }
+  }
+
   return null;
 }
 
@@ -165,23 +248,29 @@ function isCircleMediaType(type: UploadType | undefined): boolean {
   return type === 'circleCover' || type === 'messagePhoto' || type === 'pulsePhoto';
 }
 
+// ─── Circle membership check via Firestore REST API ──────────────────────────
+
 async function verifyCircleMembership(input: {
   env: Env;
   firebaseIdToken: string;
   circleId: string;
   userId: string;
 }): Promise<boolean> {
+  // Use the user's own Firebase ID token. Firestore rules enforce that a user
+  // can only read their own membership document, so this is least-privilege.
   const documentPath = [
     'circles',
     encodeURIComponent(input.circleId),
     'members',
     encodeURIComponent(input.userId),
   ].join('/');
-  const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
-    input.env.FIREBASE_PROJECT_ID,
-  )}/databases/(default)/documents/${documentPath}`;
+
+  const url =
+    `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(input.env.FIREBASE_PROJECT_ID)}` +
+    `/databases/(default)/documents/${documentPath}`;
 
   const response = await fetch(url, {
+    method: 'GET',
     headers: {
       authorization: `Bearer ${input.firebaseIdToken}`,
     },
@@ -194,8 +283,10 @@ async function verifyCircleMembership(input: {
     return false;
   }
 
-  throw new Error(`Firestore membership check failed with ${response.status}`);
+  throw new Error(`Firestore membership check returned unexpected status ${response.status}`);
 }
+
+// ─── Object key builder ───────────────────────────────────────────────────────
 
 function buildObjectKey(input: {
   type: UploadType;
@@ -216,6 +307,8 @@ function buildObjectKey(input: {
   }
 }
 
+// ─── Utilities ────────────────────────────────────────────────────────────────
+
 function normalizeExtension(extension: string): string {
   return extension.replace(/^\./, '').toLowerCase();
 }
@@ -226,17 +319,23 @@ function trimTrailingSlash(value: string): string {
 
 function buildCorsHeaders(env: Env): HeadersInit {
   return {
-    'access-control-allow-origin': env.ALLOWED_ORIGIN || '*',
+    'access-control-allow-origin': env.ALLOWED_ORIGIN ?? '*',
     'access-control-allow-methods': 'POST, OPTIONS',
     'access-control-allow-headers': 'authorization, content-type',
-    'content-type': 'application/json',
+    'access-control-max-age': '86400',
   };
 }
 
-function json(
-  body: unknown,
-  status: number,
-  headers: HeadersInit,
-): Response {
-  return new Response(JSON.stringify(body), { status, headers });
+function okJson(body: unknown, status: number, corsHeaders: HeadersInit): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'content-type': 'application/json' },
+  });
+}
+
+function errorJson(message: string, status: number, corsHeaders: HeadersInit): Response {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { ...corsHeaders, 'content-type': 'application/json' },
+  });
 }

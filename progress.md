@@ -140,11 +140,19 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [x] Protect R2 uploads through backend-generated presigned URLs
 - [x] Require Circle membership before signing Circle media uploads
 - [x] Confirm Firestore rules compile with Firebase CLI dry run
-- [ ] Test basic access manually
+- [x] Audit and finalize production-ready Firestore rules (Phase 4 hardening)
+- [x] Add composite index for plans (status + startsAt)
+- [x] Harden R2 Worker: pinned presigned URL expiry, explicit extension allow-list, content-length guard, structured logging
+- [ ] Deploy Firestore rules: `firebase deploy --only firestore:rules`
+- [ ] Deploy Firestore indexes: `firebase deploy --only firestore:indexes`
+- [ ] Deploy R2 Worker: `wrangler deploy` (from backend/r2-upload-worker)
+- [ ] Test basic access manually (see Manual Smoke Test Checklist below)
 
-Firestore rules are configured locally in `firestore.rules` and referenced from `firebase.json`. They still need to be deployed and manually smoke-tested against the Firebase project.
+Firestore rules are configured locally in `firestore.rules` and referenced from `firebase.json`. Deploy with `firebase deploy --only firestore`.
 
-Firestore indexes are configured locally in `firestore.indexes.json`. The Home screen requires the collection-group index on `members.userId` for `collectionGroup('members').where('userId', ...)`.
+Firestore indexes are configured locally in `firestore.indexes.json`. Required indexes:
+- Collection-group index on `members.userId` (Home screen collectionGroup query)
+- Composite index on `plans`: `status ASC + startsAt ASC` (active plans list query)
 
 ### 10. Tests
 
