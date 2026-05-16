@@ -82,7 +82,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 112),
             children: [
               Text(
-                'Good evening',
+                _greeting(),
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: CirclePulseColors.cocoa,
@@ -98,18 +98,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 20),
               _OverallPulseProgress(circles: items),
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'My Circles',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  TextButton(onPressed: () {}, child: const Text('View all')),
-                ],
+              Text(
+                'My Circles',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               const SizedBox(height: 10),
               ...items.map(
@@ -167,6 +160,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         label: const Text('Join with Code'),
       ),
     ];
+  }
+
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
   }
 }
 

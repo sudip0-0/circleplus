@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -35,7 +36,11 @@ class CircleMembersScreen extends ConsumerWidget {
           SoftIconButton(
             icon: Icons.person_add_alt_1_outlined,
             tooltip: 'Invite member',
-            onPressed: () {},
+            onPressed: () {
+              final circleData = ref.read(circleProvider(circleId)).asData?.value;
+              if (circleData == null) return;
+              _showInviteSheet(context, circleData.name, circleData.inviteCode);
+            },
           ),
           const SizedBox(width: 8),
         ],
@@ -130,7 +135,11 @@ class CircleMembersScreen extends ConsumerWidget {
                           ),
                         IconButton(
                           tooltip: 'Member options',
-                          onPressed: () {},
+                          onPressed: () => _showMemberOptions(
+                            context,
+                            member,
+                            isCurrentUser: member.userId == currentUserId,
+                          ),
                           icon: const Icon(Icons.more_horiz),
                         ),
                       ],
@@ -294,6 +303,136 @@ class _LeaveCircleButton extends ConsumerWidget {
   }
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+void _showInviteSheet(BuildContext context, String circleName, String inviteCode) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Invite to $circleName',
+              style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Share this code with friends. Anyone who enters it can join.',
+              style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: CirclePulseColors.muted),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: CirclePulseColors.warmSurface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: CirclePulseColors.outline),
+              ),
+              child: Text(
+                inviteCode,
+                textAlign: TextAlign.center,
+                style: Theme.of(ctx).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 4,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              icon: const Icon(Icons.copy_outlined),
+              label: const Text('Copy invite code'),
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: inviteCode));
+                if (ctx.mounted) Navigator.of(ctx).pop();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Invite code "$inviteCode" copied!'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+void _showMemberOptions(
+  BuildContext context,
+  CircleMemberModel member, {
+  required bool isCurrentUser,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Avatar(
+                  displayName: member.displayName,
+                  photoUrl: member.photoUrl,
+                  radius: 20,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  member.displayName,
+                  style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (isCurrentUser)
+              Text(
+                "That's you.",
+                style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                  color: CirclePulseColors.muted,
+                ),
+              )
+            else ...[
+              ListTile(
+                leading: const Icon(Icons.manage_accounts_outlined),
+                title: const Text('Change role'),
+                subtitle: const Text('Coming in a future update'),
+                enabled: false,
+                contentPadding: EdgeInsets.zero,
+              ),
+              ListTile(
+                leading: const Icon(Icons.person_remove_outlined),
+                title: const Text('Remove from Circle'),
+                subtitle: const Text('Coming in a future update'),
+                enabled: false,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ],
+            const SizedBox(height: 4),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 // ── Invite code card ──────────────────────────────────────────────────────────
 
 class _InviteCard extends StatelessWidget {
@@ -343,7 +482,17 @@ class _InviteCard extends StatelessWidget {
                 ),
                 IconButton(
                   tooltip: 'Copy code',
-                  onPressed: () {},
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: inviteCode));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Invite code "$inviteCode" copied!'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
                   icon: const Icon(Icons.copy_outlined),
                 ),
               ],

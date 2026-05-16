@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -85,7 +86,21 @@ class CircleRoomScreen extends ConsumerWidget {
                           ),
                           IconButton(
                             tooltip: 'Copy invite code',
-                            onPressed: () {},
+                            onPressed: () async {
+                              await Clipboard.setData(
+                                ClipboardData(text: item.inviteCode),
+                              );
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Invite code "${item.inviteCode}" copied!',
+                                    ),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            },
                             icon: const Icon(Icons.copy_outlined),
                           ),
                         ],
