@@ -100,9 +100,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 24),
               Text(
                 'My Circles',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 10),
               ...items.map(
@@ -298,19 +298,31 @@ class _FallbackCircleCover extends StatelessWidget {
   }
 }
 
-class _OverallPulseProgress extends StatelessWidget {
+class _OverallPulseProgress extends ConsumerWidget {
   const _OverallPulseProgress({required this.circles});
 
   final List<CircleModel> circles;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final members = circles.fold<int>(
       0,
       (sum, circle) => sum + circle.memberCount,
     );
     final total = members == 0 ? circles.length : members;
-    final posted = total == 0 ? 0 : (total / 2).round().clamp(0, total);
+    var posted = 0;
+    var isLoading = false;
+    Object? firstError;
+
+    for (final circle in circles) {
+      final pulses = ref.watch(todayPulsesProvider(circle.id));
+      pulses.when(
+        loading: () => isLoading = true,
+        error: (error, stackTrace) => firstError ??= error,
+        data: (items) => posted += items.length,
+      );
+    }
+
     final progress = total == 0 ? 0.0 : posted / total;
 
     return WarmCard(
@@ -327,12 +339,24 @@ class _OverallPulseProgress extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text('$posted of $total members posted'),
+                if (firstError != null)
+                  Text(
+                    'Pulse progress unavailable',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  )
+                else
+                  Text(
+                    isLoading
+                        ? 'Checking today\'s Pulses...'
+                        : '$posted of $total members posted',
+                  ),
                 const SizedBox(height: 12),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
-                    value: progress,
+                    value: isLoading || firstError != null ? null : progress,
                     minHeight: 8,
                     backgroundColor: CirclePulseColors.outline,
                     color: CirclePulseColors.clay,

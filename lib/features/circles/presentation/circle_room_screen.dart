@@ -361,6 +361,7 @@ class _PulseProgressPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final circle = ref.watch(circleProvider(circleId));
     final pulses = ref.watch(todayPulsesProvider(circleId));
+    final myPulse = ref.watch(myTodayPulseProvider(circleId));
 
     final memberCount = circle.asData?.value?.memberCount ?? 0;
 
@@ -383,6 +384,10 @@ class _PulseProgressPanel extends ConsumerWidget {
           final posted = items.length;
           final total = memberCount == 0 ? posted : memberCount;
           final progress = total == 0 ? 0.0 : (posted / total).clamp(0.0, 1.0);
+          final hasPosted = myPulse.maybeWhen(
+            data: (pulse) => pulse != null,
+            orElse: () => false,
+          );
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -407,6 +412,13 @@ class _PulseProgressPanel extends ConsumerWidget {
                   backgroundColor: CirclePulseColors.outline,
                   color: CirclePulseColors.clay,
                 ),
+              ),
+              const SizedBox(height: 14),
+              PrimaryGradientButton(
+                label: hasPosted ? 'Update Pulse' : 'Add Pulse',
+                icon: hasPosted ? Icons.edit_outlined : Icons.add_a_photo,
+                onPressed: () =>
+                    context.push('/circles/$circleId/pulse/create'),
               ),
             ],
           );

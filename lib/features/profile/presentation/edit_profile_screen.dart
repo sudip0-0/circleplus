@@ -162,8 +162,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final compressed = await compressImageBytes(raw);
     setState(() {
       _avatarBytes = compressed;
-      // Use .png since compressImageBytes always returns PNG-encoded bytes.
-      _avatarFileName = 'avatar.png';
+      _avatarFileName = 'avatar.jpg';
     });
   }
 }

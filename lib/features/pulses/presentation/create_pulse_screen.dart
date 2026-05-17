@@ -190,8 +190,8 @@ class _CreatePulseScreenState extends ConsumerState<CreatePulseScreen> {
         .uploadPhotoAndCreatePulse(
           circleId: widget.circleId,
           bytes: bytes,
-          contentType: 'image/png',
-          fileExtension: 'png',
+          contentType: 'image/jpeg',
+          fileExtension: 'jpg',
           caption: _captionController.text,
           mood: _moodController.text,
         );

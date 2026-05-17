@@ -308,9 +308,26 @@ Security rules are now covered by the Firebase Emulator test harness in `rules-t
 - [ ] Plan count-only writes are denied unless paired with the current user's response write
 - [ ] R2 signer denies Circle media signing for signed-in non-members
 
+## Session 6 Completed Work (2026-05-17)
+
+### Fixes
+- **Pulse/photo upload compression:** replaced `dart:ui` isolate decoding with pure Dart JPEG compression so selected photos can be resized off the UI thread without crashing on Android isolates
+- **Media upload metadata:** aligned Pulse, message photo, and avatar uploads with JPEG content type and `.jpg` extension after compression
+
+### Verification
+- `flutter analyze lib/core/utils/image_compression.dart lib/features/pulses/presentation/create_pulse_screen.dart lib/features/messages/presentation/message_composer.dart lib/features/profile/presentation/edit_profile_screen.dart` - 0 issues
+- `flutter test test/message_pulse_plan_model_test.dart` - 8/8 passing
+- `flutter analyze` - 0 issues
+- `flutter test` - 25/25 passing
+
 ## Session 5 Completed Work (2026-05-17)
 
+### Fixes
+- **Home Pulse progress:** replaced hardcoded overall Pulse progress with live counts from each Circle's `todayPulsesProvider`
+- **Upcoming Plans:** filtered active Plan streams to exclude Plans whose scheduled date/time has already passed
+
 ### UI
+- **Circle Room Pulse action:** added an Add/Update Pulse button to the group page Pulse progress panel
 - **Separated Circle dashboard and chat:** Circle Room is now a dashboard with cover hero, private/invite pills, Pulse progress, quick actions, members, upcoming Plan, recent moments, and a primary "Open Circle Chat" action
 - **Dedicated Circle Chat screen:** added `/circles/:circleId/chat` with its own header, real-time message list, and composer
 - **Chat polish:** restyled message bubbles, photo messages, day pill, and bottom composer to match the warmer reference direction while preserving existing message send/delete behavior
@@ -319,6 +336,8 @@ Security rules are now covered by the Firebase Emulator test harness in `rules-t
 - Updated `architecture.md` with the dedicated Circle chat route and revised Circle Room composition
 
 ### Verification
+- `flutter analyze lib/features/plans/data/firebase_plan_repository.dart lib/features/circles/presentation/circle_room_screen.dart` - 0 issues
+- `flutter analyze lib/features/circles/presentation/circle_room_screen.dart` - 0 issues
 - `flutter analyze lib/features/circles/presentation/circle_room_screen.dart lib/features/messages/presentation/circle_chat_screen.dart lib/features/messages/presentation/message_list.dart lib/features/messages/presentation/message_composer.dart lib/routing/app_router.dart` - 0 issues
 
 ## Session 4 Completed Work (2026-05-17)

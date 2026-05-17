@@ -170,8 +170,8 @@ class _MessageComposerState extends ConsumerState<MessageComposer> {
         .uploadPhotoMessage(
           circleId: widget.circleId,
           bytes: bytes,
-          contentType: 'image/png',
-          fileExtension: 'png',
+          contentType: 'image/jpeg',
+          fileExtension: 'jpg',
           text: _controller.text,
         );
     if (!ref.read(messageControllerProvider).hasError) {

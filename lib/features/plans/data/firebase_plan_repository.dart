@@ -20,6 +20,7 @@ class FirebasePlanRepository implements PlanRepository {
         .doc(circleId)
         .collection('plans')
         .where('status', isEqualTo: PlanStatus.active.name)
+        .where('startsAt', isGreaterThanOrEqualTo: DateTime.now())
         .orderBy('startsAt')
         .snapshots()
         .map(
