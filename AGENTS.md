@@ -54,7 +54,6 @@ Use:
 - Firebase Auth
 - Cloud Firestore
 - Cloudflare R2 for media storage through backend-generated presigned URLs
-- Firebase Cloud Messaging-ready structure
 - Riverpod
 - GoRouter
 - Material 3
@@ -107,10 +106,6 @@ lib/
       domain/
       presentation/
     plans/
-      data/
-      domain/
-      presentation/
-    notifications/
       data/
       domain/
       presentation/

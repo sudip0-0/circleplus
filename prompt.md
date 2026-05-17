@@ -49,7 +49,6 @@ Build the first usable MVP with these features only:
 9. Daily photo check-in inside each group
 10. Event planning card
 11. Event response voting
-12. Push notification-ready structure
 
 ## Recommended Stack
 
@@ -60,7 +59,6 @@ Use:
 - Firebase Authentication
 - Cloud Firestore
 - Cloudflare R2 for media storage through backend-generated presigned URLs
-- Firebase Cloud Messaging
 - Riverpod for state management
 - GoRouter for navigation
 - Freezed/json_serializable for models if useful
@@ -326,9 +324,8 @@ Follow this order:
 12. Build photo upload
 13. Build Pulse feature
 14. Build Plan feature
-15. Add basic notifications structure
-16. Polish UI and empty states
-17. Add basic tests
+15. Polish UI and empty states
+16. Add basic tests
 
 ## Quality Bar
 

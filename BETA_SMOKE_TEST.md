@@ -226,26 +226,6 @@ _Prerequisite: Both Alice and Bob are in the same Circle._
 
 ---
 
-## 7. Push Notifications
-
-_Prerequisite: Cloud Functions deployed, both users have granted notification
-permission._
-
-| # | Check | A | B |
-|---|---|---|---|
-| 7.1 | App prompts for notification permission on first launch after sign-in | ☐ | ☐ |
-| 7.2 | FCM token stored in Firestore `users/{id}.fcmTokens` | ☐ | ☐ |
-| 7.3 | Alice sends a message → Bob receives push notification within ~5 s | — | ☐ |
-| 7.4 | Push notification shows sender name and Circle name in title | — | ☐ |
-| 7.5 | Push shows message text (truncated if > 120 chars) | — | ☐ |
-| 7.6 | Alice creates a new Plan → Bob receives push notification | — | ☐ |
-| 7.7 | Plan notification shows creator name and plan title | — | ☐ |
-| 7.8 | Alice does NOT receive a push for her own messages/plans | ☐ | — |
-| 7.9 | App foregrounded — no crash on receiving push | ☐ | ☐ |
-| 7.10 | App backgrounded — push notification visible in system tray | ☐ | ☐ |
-
----
-
 ## 8. Media Rendering
 
 | # | Check | A | B |

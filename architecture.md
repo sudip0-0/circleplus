@@ -36,9 +36,6 @@ Flutter App
   |     |-- message photos
   |     |-- pulse photos
   |     |-- uploads must use backend-generated presigned URLs
-  |
-  |-- Firebase Cloud Messaging
-        |-- notifications for messages, pulses, plans
 ```
 
 ## Flutter Architecture
@@ -83,8 +80,6 @@ lib/
       firebase_service.dart
     storage/
       storage_service.dart
-    notifications/
-      notification_service.dart
 
   features/
     auth/
@@ -159,18 +154,6 @@ lib/
         create_plan_screen.dart
         plan_detail_screen.dart
         plan_controller.dart
-
-    notifications/
-      data/
-        firebase_notification_repository.dart
-      domain/
-        notification_repository.dart
-      presentation/
-        notification_controller.dart
-
-  services/
-    notifications/
-      notification_service.dart
 ```
 
 ## Dependency Direction
@@ -223,9 +206,7 @@ Fields:
   "photoUrl": null,
   "bio": null,
   "createdAt": "serverTimestamp",
-  "updatedAt": "serverTimestamp",
-  "fcmTokens": [],
-  "fcmTokenUpdatedAt": "timestamp"
+  "updatedAt": "serverTimestamp"
 }
 ```
 
@@ -234,7 +215,6 @@ Purpose:
 - display name
 - avatar
 - basic profile
-- notification-ready FCM token storage
 
 ### circles
 
@@ -681,31 +661,6 @@ Later:
 - expiring invite links
 - admin approval
 
-## Notification Architecture
-
-MVP should be notification-ready.
-
-Events that can trigger notifications later:
-- new Circle invite
-- new message
-- new Pulse
-- new Plan
-- Plan response update
-
-For MVP, prepare:
-- FCM token storage under users
-- notification service interface
-- permission request flow
-
-Implemented user document addition:
-
-```json
-{
-  "fcmTokens": ["tokenValue"],
-  "fcmTokenUpdatedAt": "timestamp"
-}
-```
-
 ## Security Rules Strategy
 
 Important security idea:
@@ -797,7 +752,6 @@ Solution:
 ## Future Architecture Ideas
 
 Only after MVP:
-- Cloud Functions for notifications
 - Firestore aggregate counters
 - dynamic invite links
 - calendar export

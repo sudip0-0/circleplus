@@ -7,51 +7,21 @@ import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_view.dart';
 import '../../../shared/widgets/circlepulse_ui.dart';
 import '../../auth/presentation/auth_controller.dart';
-import '../../notifications/presentation/notification_controller.dart';
 import '../../pulses/presentation/pulse_controller.dart';
 import '../domain/circle.dart';
 import 'circle_controller.dart';
 
-class HomeScreen extends ConsumerStatefulWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends ConsumerState<HomeScreen> {
-  bool _requestedNotifications = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_requestedNotifications) {
-      return;
-    }
-    _requestedNotifications = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      ref
-          .read(notificationControllerProvider.notifier)
-          .requestPermissionAndSyncToken();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final circles = ref.watch(userCirclesProvider);
 
     return WarmScaffold(
       appBar: WarmAppBar(
         title: 'CirclePulse',
         actions: [
-          SoftIconButton(
-            tooltip: 'Notifications',
-            onPressed: () {},
-            icon: Icons.notifications_none,
-          ),
           SoftIconButton(
             tooltip: 'Edit profile',
             onPressed: () => context.push('/profile/edit'),

@@ -111,7 +111,7 @@ cd circlepulse
 Add dependencies:
 
 ```bash
-flutter pub add firebase_core firebase_auth cloud_firestore firebase_messaging
+flutter pub add firebase_core firebase_auth cloud_firestore
 flutter pub add flutter_riverpod go_router image_picker intl uuid cached_network_image
 ```
 
@@ -211,12 +211,6 @@ Run Flutter with the deployed Worker URL:
 flutter run --dart-define=R2_UPLOAD_SIGNER_URL=https://your-worker-url
 ```
 
-## Notifications
-
-The MVP requests notification permission after sign-in and stores an FCM token
-on the current user document when the platform can provide one. Push delivery
-through Cloud Functions is intentionally not part of the current MVP.
-
 ## Recommended Folder Structure
 
 ```txt
@@ -231,7 +225,6 @@ lib/
     messages/
     pulses/
     plans/
-    notifications/
 ```
 
 See `architecture.md` for the full detailed structure.
@@ -253,10 +246,9 @@ See `architecture.md` for the full detailed structure.
 13. Pulse wall
 14. Plan creation
 15. Plan responses
-16. Notification-ready structure
-17. Security rules
-18. Basic tests
-19. UI polish
+16. Security rules
+17. Basic tests
+18. UI polish
 
 ## Main User Flow
 
@@ -332,7 +324,6 @@ Only after the MVP works:
 - voice notes
 - richer reactions
 - dynamic invite links
-- push notifications through Cloud Functions
 - plan reminders
 - calendar export
 - polls for choosing meeting time
