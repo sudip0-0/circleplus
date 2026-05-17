@@ -149,142 +149,198 @@ class _MessageBubble extends StatelessWidget {
     final time = TimeOfDay.fromDateTime(message.createdAt);
     return GestureDetector(
       onLongPress: onDeleteRequest,
-      child: Align(
-        alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 380),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (!isMine) ...[
-                Avatar(
-                  displayName: message.senderName,
-                  photoUrl: message.senderPhotoUrl,
-                  radius: 22,
-                ),
-                const SizedBox(width: 10),
-              ],
-              Flexible(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 18),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxBubbleWidth = constraints.maxWidth * 0.78;
+          final bubbleColor = isMine
+              ? CirclePulseColors.clay
+              : CirclePulseColors.warmSurface;
+          final textColor = isMine ? Colors.white : CirclePulseColors.cocoa;
+          final metaColor = isMine
+              ? Colors.white.withValues(alpha: 0.76)
+              : CirclePulseColors.muted.withValues(alpha: 0.76);
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: isMine ? 48 : 0,
+              right: isMine ? 0 : 48,
+              bottom: 8,
+            ),
+            child: Row(
+              mainAxisAlignment: isMine
+                  ? MainAxisAlignment.end
+                  : MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (!isMine) ...[
+                  Avatar(
+                    displayName: message.senderName,
+                    photoUrl: message.senderPhotoUrl,
+                    radius: 16,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Flexible(
                   child: Column(
                     crossAxisAlignment: isMine
                         ? CrossAxisAlignment.end
                         : CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (!isMine) ...[
+                      if (!isMine)
                         Padding(
-                          padding: const EdgeInsets.only(left: 2, bottom: 6),
+                          padding: const EdgeInsets.only(left: 4, bottom: 3),
                           child: Text(
                             message.senderName,
-                            style: Theme.of(context).textTheme.labelLarge
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.labelSmall
                                 ?.copyWith(
-                                  color: CirclePulseColors.clay,
-                                  fontWeight: FontWeight.w900,
+                                  color: CirclePulseColors.muted,
+                                  fontWeight: FontWeight.w800,
                                 ),
                           ),
                         ),
-                      ],
-                      Container(
-                        decoration: BoxDecoration(
-                          color: isMine
-                              ? CirclePulseColors.cardAlt
-                              : CirclePulseColors.warmSurface,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: CirclePulseColors.outline),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.brown.withValues(alpha: 0.06),
-                              blurRadius: 16,
-                              offset: const Offset(0, 7),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: bubbleColor,
+                            borderRadius: BorderRadius.only(
+                              topLeft: const Radius.circular(18),
+                              topRight: const Radius.circular(18),
+                              bottomLeft: Radius.circular(isMine ? 18 : 4),
+                              bottomRight: Radius.circular(isMine ? 4 : 18),
                             ),
-                          ],
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: _MessageBubbleContent(
-                            message: message,
-                            timeLabel: time.format(context),
+                            border: isMine
+                                ? null
+                                : Border.all(color: CirclePulseColors.outline),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.brown.withValues(alpha: 0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            child: _MessageBubbleContent(
+                              message: message,
+                              timeLabel: time.format(context),
+                              isMine: isMine,
+                              textColor: textColor,
+                              metaColor: metaColor,
+                            ),
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 }
 
 class _MessageBubbleContent extends StatelessWidget {
-  const _MessageBubbleContent({required this.message, required this.timeLabel});
+  const _MessageBubbleContent({
+    required this.message,
+    required this.timeLabel,
+    required this.isMine,
+    required this.textColor,
+    required this.metaColor,
+  });
 
   final MessageModel message;
   final String timeLabel;
+  final bool isMine;
+  final Color textColor;
+  final Color metaColor;
 
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 74),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: isMine
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           if (message.mediaUrl != null) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                message.mediaUrl!,
-                height: 164,
-                width: 270,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) {
-                    return child;
-                  }
-                  return const SizedBox(
-                    height: 164,
-                    width: 270,
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return const SizedBox(
-                    height: 164,
-                    width: 270,
-                    child: Center(child: Icon(Icons.broken_image)),
-                  );
-                },
-              ),
-            ),
+            _MessageImage(url: message.mediaUrl!),
             if (message.text?.isNotEmpty == true) const SizedBox(height: 10),
           ],
           if (message.text?.isNotEmpty == true)
             Text(
               message.text!,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: CirclePulseColors.cocoa,
-                height: 1.35,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: textColor, height: 1.35),
             ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
           Align(
             alignment: Alignment.centerRight,
             child: Text(
               timeLabel,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: CirclePulseColors.muted.withValues(alpha: 0.76),
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: metaColor),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _MessageImage extends StatelessWidget {
+  const _MessageImage({required this.url});
+
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth < 270 ? constraints.maxWidth : 270.0;
+        final height = width * 0.61;
+
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.network(
+            url,
+            height: height,
+            width: width,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) {
+                return child;
+              }
+              return SizedBox(
+                height: height,
+                width: width,
+                child: const Center(child: CircularProgressIndicator()),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return SizedBox(
+                height: height,
+                width: width,
+                child: const Center(child: Icon(Icons.broken_image)),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
@@ -301,11 +357,20 @@ class _DeletedBubble extends StatelessWidget {
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10, left: 4, right: 4),
+        margin: EdgeInsets.only(
+          bottom: 8,
+          left: isMine ? 48 : 0,
+          right: isMine ? 0 : 48,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: CirclePulseColors.warmSurface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(isMine ? 16 : 4),
+            bottomRight: Radius.circular(isMine ? 4 : 16),
+          ),
           border: Border.all(color: CirclePulseColors.outline),
         ),
         child: Row(

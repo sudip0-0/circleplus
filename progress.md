@@ -332,11 +332,14 @@ Security rules are now covered by the Firebase Emulator test harness in `rules-t
 - **Separated Circle dashboard and chat:** Circle Room is now a dashboard with cover hero, private/invite pills, Pulse progress, quick actions, members, upcoming Plan, recent moments, and a primary "Open Circle Chat" action
 - **Dedicated Circle Chat screen:** added `/circles/:circleId/chat` with its own header, real-time message list, and composer
 - **Chat polish:** restyled message bubbles, photo messages, day pill, and bottom composer to match the warmer reference direction while preserving existing message send/delete behavior
+- **Messenger-style chat alignment:** updated Circle Chat messages so the current user's messages are compact, right-aligned sent bubbles while other members' messages stay left-aligned with avatars
 
 ### Documentation
 - Updated `architecture.md` with the dedicated Circle chat route and revised Circle Room composition
 
 ### Verification
+- `flutter analyze lib/features/messages/presentation/message_list.dart lib/features/messages/presentation/circle_chat_screen.dart` - 0 issues
+- `flutter test` - 25/25 passing
 - `flutter analyze lib/features/plans/data/firebase_plan_repository.dart lib/features/circles/presentation/circle_room_screen.dart` - 0 issues
 - `flutter analyze lib/features/plans/domain/plan_repository.dart lib/features/plans/data/firebase_plan_repository.dart lib/features/plans/presentation/plan_controller.dart lib/features/plans/presentation/plans_screen.dart lib/features/plans/presentation/plan_card.dart lib/features/circles/presentation/circle_room_screen.dart lib/routing/app_router.dart` - 0 issues
 - `flutter test` - 25/25 passing
