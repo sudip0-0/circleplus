@@ -3,6 +3,8 @@ import 'plan.dart';
 import 'plan_response.dart';
 
 abstract interface class PlanRepository {
+  Stream<List<PlanModel>> watchPlans(String circleId);
+
   Stream<List<PlanModel>> watchActivePlans(String circleId);
 
   Stream<PlanModel?> watchPlan({
@@ -43,8 +45,5 @@ abstract interface class PlanRepository {
   });
 
   /// Marks a Plan as cancelled. Only the creator may call this.
-  Future<void> cancelPlan({
-    required String circleId,
-    required String planId,
-  });
+  Future<void> cancelPlan({required String circleId, required String planId});
 }

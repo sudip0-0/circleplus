@@ -455,8 +455,8 @@ class _QuickActions extends StatelessWidget {
         ),
         _ActionTile(
           icon: Icons.calendar_month_outlined,
-          label: 'New Plan',
-          onTap: () => context.push('/circles/$circleId/plans/create'),
+          label: 'Plans',
+          onTap: () => context.push('/circles/$circleId/plans'),
         ),
         _ActionTile(
           icon: Icons.person_add_alt_1_outlined,
@@ -636,6 +636,10 @@ class _UpcomingPlanPanel extends ConsumerWidget {
                       context.push('/circles/$circleId/plans/create'),
                   child: const Text('Create'),
                 ),
+                TextButton(
+                  onPressed: () => context.push('/circles/$circleId/plans'),
+                  child: const Text('All'),
+                ),
               ],
             );
           }
@@ -693,6 +697,10 @@ class _UpcomingPlanPanel extends ConsumerWidget {
                       ),
                     ],
                   ),
+                ),
+                TextButton(
+                  onPressed: () => context.push('/circles/$circleId/plans'),
+                  child: const Text('All'),
                 ),
                 const Icon(Icons.chevron_right),
               ],

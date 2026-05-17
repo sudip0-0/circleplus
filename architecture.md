@@ -513,6 +513,7 @@ Implemented routes:
 /circles/:circleId/members
 /circles/:circleId/pulse/create
 /circles/:circleId/pulses
+/circles/:circleId/plans
 /circles/:circleId/plans/create
 /circles/:circleId/plans/:planId
 ```
@@ -572,6 +573,7 @@ pulseControllerProvider
 
 ```txt
 planRepositoryProvider
+allPlansProvider(circleId)
 activePlansProvider(circleId)
 planProvider((circleId, planId))
 planResponsesProvider((circleId, planId))
@@ -584,7 +586,7 @@ Circle rooms now act as a private Circle dashboard and show:
 - Circle context, private status, and invite code
 - today's Pulse progress and Pulse wall navigation
 - member preview and member list action
-- upcoming Plan preview and create Plan action
+- upcoming Plan preview and all-Plans navigation
 - recent Pulse photo moments
 - a primary action into the dedicated Circle chat
 

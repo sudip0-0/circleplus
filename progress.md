@@ -325,6 +325,7 @@ Security rules are now covered by the Firebase Emulator test harness in `rules-t
 ### Fixes
 - **Home Pulse progress:** replaced hardcoded overall Pulse progress with live counts from each Circle's `todayPulsesProvider`
 - **Upcoming Plans:** filtered active Plan streams to exclude Plans whose scheduled date/time has already passed
+- **All Plans access:** added a full Circle Plans screen so members can view upcoming, past, and cancelled Plans instead of only the next upcoming Plan
 
 ### UI
 - **Circle Room Pulse action:** added an Add/Update Pulse button to the group page Pulse progress panel
@@ -337,6 +338,8 @@ Security rules are now covered by the Firebase Emulator test harness in `rules-t
 
 ### Verification
 - `flutter analyze lib/features/plans/data/firebase_plan_repository.dart lib/features/circles/presentation/circle_room_screen.dart` - 0 issues
+- `flutter analyze lib/features/plans/domain/plan_repository.dart lib/features/plans/data/firebase_plan_repository.dart lib/features/plans/presentation/plan_controller.dart lib/features/plans/presentation/plans_screen.dart lib/features/plans/presentation/plan_card.dart lib/features/circles/presentation/circle_room_screen.dart lib/routing/app_router.dart` - 0 issues
+- `flutter test` - 25/25 passing
 - `flutter analyze lib/features/circles/presentation/circle_room_screen.dart` - 0 issues
 - `flutter analyze lib/features/circles/presentation/circle_room_screen.dart lib/features/messages/presentation/circle_chat_screen.dart lib/features/messages/presentation/message_list.dart lib/features/messages/presentation/message_composer.dart lib/routing/app_router.dart` - 0 issues
 

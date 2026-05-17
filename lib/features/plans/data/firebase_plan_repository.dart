@@ -15,6 +15,20 @@ class FirebasePlanRepository implements PlanRepository {
       _firestore.collection('circles');
 
   @override
+  Stream<List<PlanModel>> watchPlans(String circleId) {
+    return _circles
+        .doc(circleId)
+        .collection('plans')
+        .orderBy('startsAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => PlanModel.fromMap(doc.data()))
+              .toList(),
+        );
+  }
+
+  @override
   Stream<List<PlanModel>> watchActivePlans(String circleId) {
     return _circles
         .doc(circleId)

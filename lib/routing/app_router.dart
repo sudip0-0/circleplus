@@ -16,6 +16,7 @@ import '../features/circles/presentation/join_circle_screen.dart';
 import '../features/messages/presentation/circle_chat_screen.dart';
 import '../features/plans/presentation/create_plan_screen.dart';
 import '../features/plans/presentation/plan_detail_screen.dart';
+import '../features/plans/presentation/plans_screen.dart';
 import '../features/profile/presentation/edit_profile_screen.dart';
 import '../features/profile/presentation/profile_controller.dart';
 import '../features/pulses/presentation/create_pulse_screen.dart';
@@ -127,6 +128,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/circles/:circleId/pulses',
         builder: (context, state) =>
             PulseWallScreen(circleId: state.pathParameters['circleId']!),
+      ),
+      GoRoute(
+        path: '/circles/:circleId/plans',
+        builder: (context, state) =>
+            PlansScreen(circleId: state.pathParameters['circleId']!),
       ),
       GoRoute(
         path: '/circles/:circleId/plans/create',

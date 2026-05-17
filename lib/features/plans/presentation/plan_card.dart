@@ -12,6 +12,20 @@ class PlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final isCancelled = plan.status == PlanStatus.cancelled;
+    final isPast = plan.startsAt.isBefore(now);
+    final statusLabel = isCancelled
+        ? 'Cancelled'
+        : isPast
+        ? 'Earlier'
+        : 'Upcoming';
+    final icon = isCancelled
+        ? Icons.event_busy_outlined
+        : isPast
+        ? Icons.history
+        : Icons.event_available_outlined;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: WarmCard(
@@ -26,10 +40,7 @@ class PlanCard extends StatelessWidget {
                 color: CirclePulseColors.cardAlt,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(
-                Icons.event_available_outlined,
-                color: CirclePulseColors.clay,
-              ),
+              child: Icon(icon, color: CirclePulseColors.clay),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -57,11 +68,43 @@ class PlanCard extends StatelessWidget {
                     '${plan.inCount} in, ${plan.maybeCount} maybe, ${plan.cantCount} can\'t',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: _StatusPill(label: statusLabel),
+                  ),
                 ],
               ),
             ),
             const Icon(Icons.chevron_right),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: CirclePulseColors.cardAlt,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: CirclePulseColors.outline),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: CirclePulseColors.muted,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
     );

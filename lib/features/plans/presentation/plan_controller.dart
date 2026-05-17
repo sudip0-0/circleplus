@@ -13,6 +13,13 @@ final planRepositoryProvider = Provider<PlanRepository>((ref) {
   return FirebasePlanRepository();
 });
 
+final allPlansProvider = StreamProvider.family<List<PlanModel>, String>((
+  ref,
+  circleId,
+) {
+  return ref.watch(planRepositoryProvider).watchPlans(circleId);
+});
+
 final activePlansProvider = StreamProvider.family<List<PlanModel>, String>((
   ref,
   circleId,
