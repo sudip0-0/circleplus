@@ -11,9 +11,16 @@ import '../domain/message.dart';
 import 'message_controller.dart';
 
 class MessageList extends ConsumerWidget {
-  const MessageList({required this.circleId, super.key});
+  const MessageList({
+    required this.circleId,
+    this.padding = const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+    this.showDayPill = false,
+    super.key,
+  });
 
   final String circleId;
+  final EdgeInsetsGeometry padding;
+  final bool showDayPill;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -31,10 +38,13 @@ class MessageList extends ConsumerWidget {
           );
         }
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          itemCount: items.length,
+          padding: padding,
+          itemCount: items.length + (showDayPill ? 1 : 0),
           itemBuilder: (context, index) {
-            final message = items[index];
+            if (showDayPill && index == 0) {
+              return const _DayPill(label: 'Today');
+            }
+            final message = items[index - (showDayPill ? 1 : 0)];
             final isMine = message.senderId == currentUser?.id;
             return _MessageBubble(
               message: message,
@@ -68,19 +78,54 @@ class MessageList extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
             child: const Text('Delete'),
           ),
         ],
       ),
     );
     if (confirmed != true || !context.mounted) return;
-    ref.read(messageControllerProvider.notifier).softDeleteMessage(
-      circleId: message.circleId,
-      messageId: message.id,
-      senderId: message.senderId,
+    ref
+        .read(messageControllerProvider.notifier)
+        .softDeleteMessage(
+          circleId: message.circleId,
+          messageId: message.id,
+          senderId: message.senderId,
+        );
+  }
+}
+
+class _DayPill extends StatelessWidget {
+  const _DayPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 22),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: CirclePulseColors.warmSurface.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: CirclePulseColors.outline),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.brown.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            color: CirclePulseColors.muted,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -107,103 +152,138 @@ class _MessageBubble extends StatelessWidget {
       child: Align(
         alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 360),
+          constraints: const BoxConstraints(maxWidth: 380),
           child: Row(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (!isMine) ...[
                 Avatar(
                   displayName: message.senderName,
                   photoUrl: message.senderPhotoUrl,
-                  radius: 14,
+                  radius: 22,
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 10),
               ],
               Flexible(
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  decoration: BoxDecoration(
-                    color: isMine
-                        ? CirclePulseColors.cardAlt
-                        : CirclePulseColors.warmSurface,
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(16),
-                      topRight: const Radius.circular(16),
-                      bottomLeft: Radius.circular(isMine ? 16 : 4),
-                      bottomRight: Radius.circular(isMine ? 4 : 16),
-                    ),
-                    border: Border.all(color: CirclePulseColors.outline),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.brown.withValues(alpha: 0.05),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (!isMine) ...[
-                          Text(
-                            message.senderName,
-                            style: Theme.of(context).textTheme.labelMedium,
-                          ),
-                          const SizedBox(height: 4),
-                        ],
-                        if (message.mediaUrl != null) ...[
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              message.mediaUrl!,
-                              fit: BoxFit.cover,
-                              loadingBuilder: (context, child, progress) {
-                                if (progress == null) {
-                                  return child;
-                                }
-                                return const SizedBox(
-                                  height: 160,
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) {
-                                return const SizedBox(
-                                  height: 160,
-                                  child: Center(
-                                    child: Icon(Icons.broken_image),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          if (message.text?.isNotEmpty == true)
-                            const SizedBox(height: 8),
-                        ],
-                        if (message.text?.isNotEmpty == true)
-                          Text(message.text!),
-                        const SizedBox(height: 4),
-                        Align(
-                          alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 18),
+                  child: Column(
+                    crossAxisAlignment: isMine
+                        ? CrossAxisAlignment.end
+                        : CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!isMine) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(left: 2, bottom: 6),
                           child: Text(
-                            time.format(context),
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(color: CirclePulseColors.muted),
+                            message.senderName,
+                            style: Theme.of(context).textTheme.labelLarge
+                                ?.copyWith(
+                                  color: CirclePulseColors.clay,
+                                  fontWeight: FontWeight.w900,
+                                ),
                           ),
                         ),
                       ],
-                    ),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: isMine
+                              ? CirclePulseColors.cardAlt
+                              : CirclePulseColors.warmSurface,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: CirclePulseColors.outline),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.brown.withValues(alpha: 0.06),
+                              blurRadius: 16,
+                              offset: const Offset(0, 7),
+                            ),
+                          ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: _MessageBubbleContent(
+                            message: message,
+                            timeLabel: time.format(context),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _MessageBubbleContent extends StatelessWidget {
+  const _MessageBubbleContent({required this.message, required this.timeLabel});
+
+  final MessageModel message;
+  final String timeLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 74),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (message.mediaUrl != null) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                message.mediaUrl!,
+                height: 164,
+                width: 270,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) {
+                    return child;
+                  }
+                  return const SizedBox(
+                    height: 164,
+                    width: 270,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return const SizedBox(
+                    height: 164,
+                    width: 270,
+                    child: Center(child: Icon(Icons.broken_image)),
+                  );
+                },
+              ),
+            ),
+            if (message.text?.isNotEmpty == true) const SizedBox(height: 10),
+          ],
+          if (message.text?.isNotEmpty == true)
+            Text(
+              message.text!,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: CirclePulseColors.cocoa,
+                height: 1.35,
+              ),
+            ),
+          const SizedBox(height: 5),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              timeLabel,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: CirclePulseColors.muted.withValues(alpha: 0.76),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -247,9 +327,9 @@ class _DeletedBubble extends StatelessWidget {
             const SizedBox(width: 10),
             Text(
               time.format(context),
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: CirclePulseColors.muted,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: CirclePulseColors.muted),
             ),
           ],
         ),

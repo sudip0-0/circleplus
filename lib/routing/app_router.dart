@@ -13,6 +13,7 @@ import '../features/circles/presentation/circle_room_screen.dart';
 import '../features/circles/presentation/create_circle_screen.dart';
 import '../features/circles/presentation/home_screen.dart';
 import '../features/circles/presentation/join_circle_screen.dart';
+import '../features/messages/presentation/circle_chat_screen.dart';
 import '../features/plans/presentation/create_plan_screen.dart';
 import '../features/plans/presentation/plan_detail_screen.dart';
 import '../features/profile/presentation/edit_profile_screen.dart';
@@ -106,6 +107,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/circles/:circleId',
         builder: (context, state) =>
             CircleRoomScreen(circleId: state.pathParameters['circleId']!),
+      ),
+      GoRoute(
+        path: '/circles/:circleId/chat',
+        builder: (context, state) =>
+            CircleChatScreen(circleId: state.pathParameters['circleId']!),
       ),
       GoRoute(
         path: '/circles/:circleId/members',

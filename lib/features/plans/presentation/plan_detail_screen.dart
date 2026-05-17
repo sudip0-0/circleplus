@@ -13,7 +13,7 @@ import '../domain/plan.dart';
 import '../domain/plan_response.dart';
 import 'plan_controller.dart';
 
-class PlanDetailScreen extends ConsumerWidget {
+class PlanDetailScreen extends ConsumerStatefulWidget {
   const PlanDetailScreen({
     required this.circleId,
     required this.planId,
@@ -24,18 +24,67 @@ class PlanDetailScreen extends ConsumerWidget {
   final String planId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final args = (circleId: circleId, planId: planId);
+  ConsumerState<PlanDetailScreen> createState() => _PlanDetailScreenState();
+}
+
+class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
+  PlanResponseValue? _optimisticResponse;
+
+  @override
+  void didUpdateWidget(covariant PlanDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.circleId != widget.circleId ||
+        oldWidget.planId != widget.planId) {
+      _optimisticResponse = null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final args = (circleId: widget.circleId, planId: widget.planId);
     final plan = ref.watch(planProvider(args));
     final responses = ref.watch(planResponsesProvider(args));
     final controllerState = ref.watch(planControllerProvider);
     final currentUser = ref.watch(currentUserProvider);
+    final currentUserResponse = responses.maybeWhen(
+      data: (items) {
+        for (final response in items) {
+          if (response.userId == currentUser?.id) {
+            return response.response;
+          }
+        }
+        return null;
+      },
+      orElse: () => null,
+    );
+    final selectedResponse = _optimisticResponse ?? currentUserResponse;
 
     ref.listen(planControllerProvider, (previous, next) {
       if (next.hasError) {
+        if (mounted) {
+          setState(() => _optimisticResponse = null);
+        }
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(next.error.toString())));
+      }
+    });
+    ref.listen(planResponsesProvider(args), (previous, next) {
+      final confirmedResponse = next.maybeWhen(
+        data: (items) {
+          for (final response in items) {
+            if (response.userId == currentUser?.id) {
+              return response.response;
+            }
+          }
+          return null;
+        },
+        orElse: () => null,
+      );
+      if (_optimisticResponse != null &&
+          confirmedResponse == _optimisticResponse &&
+          mounted) {
+        setState(() => _optimisticResponse = null);
       }
     });
 
@@ -57,8 +106,7 @@ class PlanDetailScreen extends ConsumerWidget {
               return SoftIconButton(
                 icon: Icons.more_horiz,
                 tooltip: 'Plan options',
-                onPressed: () =>
-                    _showCreatorOptions(context, ref, item),
+                onPressed: () => _showCreatorOptions(context, ref, item),
               );
             },
             orElse: () => const SizedBox.shrink(),
@@ -181,14 +229,13 @@ class PlanDetailScreen extends ConsumerWidget {
                                   label: 'In',
                                   count: item.inCount,
                                   icon: Icons.check_circle_outline,
-                                  selected: true,
-                                  onTap: (controllerState.isLoading ||
+                                  selected:
+                                      selectedResponse == PlanResponseValue.in_,
+                                  onTap:
+                                      (controllerState.isLoading ||
                                           item.status != PlanStatus.active)
                                       ? null
-                                      : () => _respond(
-                                          ref,
-                                          PlanResponseValue.in_,
-                                        ),
+                                      : () => _respond(PlanResponseValue.in_),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -197,13 +244,14 @@ class PlanDetailScreen extends ConsumerWidget {
                                   label: 'Maybe',
                                   count: item.maybeCount,
                                   icon: Icons.help_outline,
-                                  onTap: (controllerState.isLoading ||
+                                  selected:
+                                      selectedResponse ==
+                                      PlanResponseValue.maybe,
+                                  onTap:
+                                      (controllerState.isLoading ||
                                           item.status != PlanStatus.active)
                                       ? null
-                                      : () => _respond(
-                                          ref,
-                                          PlanResponseValue.maybe,
-                                        ),
+                                      : () => _respond(PlanResponseValue.maybe),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -212,13 +260,14 @@ class PlanDetailScreen extends ConsumerWidget {
                                   label: "Can't",
                                   count: item.cantCount,
                                   icon: Icons.close,
-                                  onTap: (controllerState.isLoading ||
+                                  selected:
+                                      selectedResponse ==
+                                      PlanResponseValue.cant,
+                                  onTap:
+                                      (controllerState.isLoading ||
                                           item.status != PlanStatus.active)
                                       ? null
-                                      : () => _respond(
-                                          ref,
-                                          PlanResponseValue.cant,
-                                        ),
+                                      : () => _respond(PlanResponseValue.cant),
                                 ),
                               ),
                             ],
@@ -276,12 +325,13 @@ class PlanDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _respond(WidgetRef ref, PlanResponseValue response) {
+  void _respond(PlanResponseValue response) {
+    setState(() => _optimisticResponse = response);
     ref
         .read(planControllerProvider.notifier)
         .respondToPlan(
-          circleId: circleId,
-          planId: planId,
+          circleId: widget.circleId,
+          planId: widget.planId,
           response: response,
           comment: null,
         );
@@ -307,10 +357,7 @@ class PlanDetailScreen extends ConsumerWidget {
               },
             ),
             ListTile(
-              leading: Icon(
-                Icons.cancel_outlined,
-                color: Colors.red.shade700,
-              ),
+              leading: Icon(Icons.cancel_outlined, color: Colors.red.shade700),
               title: Text(
                 'Cancel Plan',
                 style: TextStyle(color: Colors.red.shade700),
@@ -327,18 +374,11 @@ class PlanDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _showEditSheet(
-    BuildContext context,
-    WidgetRef ref,
-    PlanModel plan,
-  ) {
+  void _showEditSheet(BuildContext context, WidgetRef ref, PlanModel plan) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (ctx) => _EditPlanSheet(
-        circleId: circleId,
-        plan: plan,
-      ),
+      builder: (ctx) => _EditPlanSheet(circleId: widget.circleId, plan: plan),
     );
   }
 
@@ -357,9 +397,7 @@ class PlanDetailScreen extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
             child: const Text('Cancel Plan'),
           ),
         ],
@@ -368,7 +406,7 @@ class PlanDetailScreen extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
     ref
         .read(planControllerProvider.notifier)
-        .cancelPlan(circleId: circleId, planId: planId);
+        .cancelPlan(circleId: widget.circleId, planId: widget.planId);
   }
 }
 
@@ -443,9 +481,9 @@ class _EditPlanSheetState extends ConsumerState<_EditPlanSheet> {
             children: [
               Text(
                 'Edit Plan',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 16),
               AppTextField(
@@ -473,9 +511,9 @@ class _EditPlanSheetState extends ConsumerState<_EditPlanSheet> {
               _PickerTile(
                 icon: Icons.schedule_outlined,
                 label: 'Time',
-                value: MaterialLocalizations.of(context).formatTimeOfDay(
-                  TimeOfDay.fromDateTime(_startsAt),
-                ),
+                value: MaterialLocalizations.of(
+                  context,
+                ).formatTimeOfDay(TimeOfDay.fromDateTime(_startsAt)),
                 onTap: _pickDateTime,
               ),
               const SizedBox(height: 12),
@@ -533,14 +571,16 @@ class _EditPlanSheetState extends ConsumerState<_EditPlanSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref.read(planControllerProvider.notifier).editPlan(
-      circleId: widget.circleId,
-      planId: widget.plan.id,
-      title: _titleController.text,
-      description: _descriptionController.text,
-      location: _locationController.text,
-      startsAt: _startsAt,
-    );
+    await ref
+        .read(planControllerProvider.notifier)
+        .editPlan(
+          circleId: widget.circleId,
+          planId: widget.plan.id,
+          title: _titleController.text,
+          description: _descriptionController.text,
+          location: _locationController.text,
+          startsAt: _startsAt,
+        );
   }
 }
 

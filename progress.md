@@ -308,6 +308,28 @@ Security rules are now covered by the Firebase Emulator test harness in `rules-t
 - [ ] Plan count-only writes are denied unless paired with the current user's response write
 - [ ] R2 signer denies Circle media signing for signed-in non-members
 
+## Session 5 Completed Work (2026-05-17)
+
+### UI
+- **Separated Circle dashboard and chat:** Circle Room is now a dashboard with cover hero, private/invite pills, Pulse progress, quick actions, members, upcoming Plan, recent moments, and a primary "Open Circle Chat" action
+- **Dedicated Circle Chat screen:** added `/circles/:circleId/chat` with its own header, real-time message list, and composer
+- **Chat polish:** restyled message bubbles, photo messages, day pill, and bottom composer to match the warmer reference direction while preserving existing message send/delete behavior
+
+### Documentation
+- Updated `architecture.md` with the dedicated Circle chat route and revised Circle Room composition
+
+### Verification
+- `flutter analyze lib/features/circles/presentation/circle_room_screen.dart lib/features/messages/presentation/circle_chat_screen.dart lib/features/messages/presentation/message_list.dart lib/features/messages/presentation/message_composer.dart lib/routing/app_router.dart` - 0 issues
+
+## Session 4 Completed Work (2026-05-17)
+
+### Fixes
+- **Plan response selection:** Plan Detail response buttons now highlight the current user's actual response instead of always highlighting "In"
+- **Plan response tap feedback:** selecting "In", "Maybe", or "Can't" now updates the selected button optimistically while the Firestore transaction completes, then hands back to the live response stream
+
+### Verification
+- `flutter analyze lib/features/plans/presentation/plan_detail_screen.dart` - 0 issues
+
 ## Session 3 Completed Work (2026-05-16)
 
 ### Features

@@ -39,28 +39,75 @@ class _MessageComposerState extends ConsumerState<MessageComposer> {
 
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+        decoration: BoxDecoration(
+          color: CirclePulseColors.cream.withValues(alpha: 0.88),
+          border: const Border(
+            top: BorderSide(color: CirclePulseColors.outline),
+          ),
+        ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            IconButton(
-              tooltip: 'Add photo',
-              onPressed: state.isLoading ? null : _pickAndSendPhoto,
-              icon: const Icon(Icons.add_photo_alternate_outlined),
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: CirclePulseColors.warmSurface,
+                shape: BoxShape.circle,
+                border: Border.all(color: CirclePulseColors.outline),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.brown.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                tooltip: 'Add photo',
+                onPressed: state.isLoading ? null : _pickAndSendPhoto,
+                icon: const Icon(Icons.photo_outlined),
+                color: CirclePulseColors.cocoa,
+              ),
             ),
+            const SizedBox(width: 10),
             Expanded(
-              child: TextField(
-                controller: _controller,
-                minLines: 1,
-                maxLines: 4,
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => _send(),
-                decoration: const InputDecoration(
-                  hintText: 'Type a message...',
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: CirclePulseColors.warmSurface,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: CirclePulseColors.outline),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.brown.withValues(alpha: 0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _controller,
+                  minLines: 1,
+                  maxLines: 4,
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) => _send(),
+                  decoration: const InputDecoration(
+                    hintText: 'Type a message...',
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 15,
+                    ),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             DecoratedBox(
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
@@ -69,22 +116,26 @@ class _MessageComposerState extends ConsumerState<MessageComposer> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: CirclePulseColors.clay.withValues(alpha: 0.25),
+                    color: CirclePulseColors.clay.withValues(alpha: 0.28),
                     blurRadius: 14,
                     offset: const Offset(0, 6),
                   ),
                 ],
               ),
-              child: IconButton(
-                tooltip: 'Send message',
-                color: Colors.white,
-                onPressed: state.isLoading ? null : _send,
-                icon: state.isLoading
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.send_rounded),
+              child: SizedBox(
+                width: 52,
+                height: 52,
+                child: IconButton(
+                  tooltip: 'Send message',
+                  color: Colors.white,
+                  onPressed: state.isLoading ? null : _send,
+                  icon: state.isLoading
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.send_rounded),
+                ),
               ),
             ),
           ],

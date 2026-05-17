@@ -489,6 +489,7 @@ App Start
               |-- Join Circle
               |-- Circle Room
                     |
+                    |-- Circle Chat
                     |-- Members
                     |-- Create Pulse
                     |-- Pulse Wall
@@ -508,6 +509,7 @@ Implemented routes:
 /circles/create
 /circles/join
 /circles/:circleId
+/circles/:circleId/chat
 /circles/:circleId/members
 /circles/:circleId/pulse/create
 /circles/:circleId/pulses
@@ -576,15 +578,19 @@ planResponsesProvider((circleId, planId))
 planControllerProvider
 ```
 
-## Current Circle Room Composition
+## Current Circle Room And Chat Composition
 
-Circle rooms now show:
-- Circle context and invite code
-- member list action
-- today's Pulse card and Pulse wall navigation
-- active Plans preview and create Plan action
-- real-time text messages
-- photo messages through the shared R2 upload path
+Circle rooms now act as a private Circle dashboard and show:
+- Circle context, private status, and invite code
+- today's Pulse progress and Pulse wall navigation
+- member preview and member list action
+- upcoming Plan preview and create Plan action
+- recent Pulse photo moments
+- a primary action into the dedicated Circle chat
+
+Circle chat is a separate route and owns:
+- full-height real-time message list
+- text and photo messages through the shared R2 upload path
 - message composer
 
 Home now shows lightweight per-Circle Pulse progress using today's Pulse count
