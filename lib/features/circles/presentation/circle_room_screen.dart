@@ -48,27 +48,38 @@ class CircleRoomScreen extends ConsumerWidget {
                   onCopyInvite: () => _copyInviteCode(context, item.inviteCode),
                 ),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
-                sliver: SliverList.list(
-                  children: [
-                    if (item.description?.trim().isNotEmpty == true) ...[
-                      _DescriptionPanel(description: item.description!.trim()),
-                      const SizedBox(height: 10),
-                    ],
-                    CircleRoomPulsePanel(circleId: circleId),
-                    const SizedBox(height: 12),
-                    _QuickActions(circleId: circleId),
-                    const SizedBox(height: 12),
-                    _MembersPreview(circleId: circleId),
-                    const SizedBox(height: 12),
-                    _UpcomingPlanPanel(circleId: circleId),
-                    const SizedBox(height: 12),
-                    CircleRoomMomentsPanel(circleId: circleId),
-                    const SizedBox(height: 18),
-                    _OpenChatButton(circleId: circleId),
-                  ],
-                ),
+              SliverLayoutBuilder(
+                builder: (context, constraints) {
+                  final wide = constraints.crossAxisExtent >= 600;
+                  final horizontal = wide ? 48.0 : 18.0;
+                  return SliverPadding(
+                    padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 24),
+                    sliver: SliverConstrainedCrossAxis(
+                      maxExtent: 720,
+                      sliver: SliverList.list(
+                        children: [
+                          if (item.description?.trim().isNotEmpty == true) ...[
+                            _DescriptionPanel(
+                              description: item.description!.trim(),
+                            ),
+                            const SizedBox(height: 10),
+                          ],
+                          CircleRoomPulsePanel(circleId: circleId),
+                          const SizedBox(height: 12),
+                          _QuickActions(circleId: circleId),
+                          const SizedBox(height: 12),
+                          _MembersPreview(circleId: circleId),
+                          const SizedBox(height: 12),
+                          _UpcomingPlanPanel(circleId: circleId),
+                          const SizedBox(height: 12),
+                          CircleRoomMomentsPanel(circleId: circleId),
+                          const SizedBox(height: 18),
+                          _OpenChatButton(circleId: circleId),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           );

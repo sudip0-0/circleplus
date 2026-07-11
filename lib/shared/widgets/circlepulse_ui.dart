@@ -189,12 +189,15 @@ class WarmCard extends StatelessWidget {
     if (onTap == null) {
       return content;
     }
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: content,
+    return Semantics(
+      button: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: content,
+        ),
       ),
     );
   }
@@ -289,45 +292,50 @@ class PrimaryGradientButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null && !isLoading;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: enabled
-            ? const LinearGradient(
-                colors: [CirclePulseColors.clay, CirclePulseColors.clayDark],
-              )
-            : null,
-        color: enabled ? null : Theme.of(context).disabledColor,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: enabled
-            ? [
-                BoxShadow(
-                  color: CirclePulseColors.clay.withValues(alpha: 0.24),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
-                ),
-              ]
-            : null,
-      ),
-      child: FilledButton.icon(
-        onPressed: enabled ? onPressed : null,
-        icon: isLoading
-            ? const SizedBox.square(
-                dimension: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Icon(icon ?? Icons.arrow_forward),
-        label: Text(label),
-        style: FilledButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          disabledBackgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          minimumSize: const Size.fromHeight(58),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: label,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: enabled
+              ? const LinearGradient(
+                  colors: [CirclePulseColors.clay, CirclePulseColors.clayDark],
+                )
+              : null,
+          color: enabled ? null : Theme.of(context).disabledColor,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: enabled
+              ? [
+                  BoxShadow(
+                    color: CirclePulseColors.clay.withValues(alpha: 0.24),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : null,
+        ),
+        child: FilledButton.icon(
+          onPressed: enabled ? onPressed : null,
+          icon: isLoading
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(icon ?? Icons.arrow_forward),
+          label: Text(label),
+          style: FilledButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            disabledBackgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            minimumSize: const Size.fromHeight(58),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            textStyle: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
           ),
-          textStyle: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
         ),
       ),
     );

@@ -4,6 +4,13 @@ import 'message.dart';
 abstract interface class MessageRepository {
   Stream<List<MessageModel>> watchMessages(String circleId, {int limit});
 
+  /// Loads messages older than [before] (exclusive), oldest-first.
+  Future<List<MessageModel>> loadOlderMessages({
+    required String circleId,
+    required DateTime before,
+    int limit = 40,
+  });
+
   Future<void> sendTextMessage({
     required String circleId,
     required String text,

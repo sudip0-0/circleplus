@@ -450,16 +450,13 @@ local `.env` file for backend/serverless development only. Keep `.env` and
 `backend/r2-upload-worker/wrangler.toml` gitignored; rotate tokens if they are
 ever shared or committed.
 
-**MVP known limitation:** the Worker returns public object URLs after a
-membership-checked upload. Anyone who obtains that URL can fetch the bytes
-without Firebase Auth. Signed/authenticated downloads are a post-MVP hardening
-item.
+**MVP media:** uploads and downloads use Worker-signed URLs after Firebase ID
+token verification. Circle media also requires membership. Firestore stores
+object keys (not durable public URLs). Legacy `https://` values still load.
 
-**Circle delete (MVP):** last-member creator delete removes the Circle document
-and creator membership client-side. Recursive subcollection + invite-code
-cleanup requires a trusted backend and is deferred. Firestore rules require the
-Circle parent to exist for membership-gated access so orphaned subcollections
-are not readable after parent deletion.
+**Circle delete (MVP):** last-member creator soft-deletes the Circle
+(`status: deleted`) and removes their membership. Recursive subcollection
+cleanup remains deferred; rules require an active Circle parent for access.
 
 The Flutter app uploads media through a backend or serverless endpoint that
 returns presigned upload URLs. Media features depend on the `StorageService`
@@ -592,12 +589,20 @@ Home now shows lightweight per-Circle Pulse progress using today's Pulse count
 against the Circle member count, plus whether the current user has posted.
 
 Photo message and Pulse photo creation are wired through `StorageService`.
-When `R2_UPLOAD_SIGNER_URL` is configured, the app requests a presigned
-Cloudflare R2 PUT URL, uploads bytes to that URL, then stores the returned
-public URL in the message or Pulse document. Without the signer URL, the app
-shows a developer setup error instead of attempting a direct upload.
+When `R2_UPLOAD_SIGNER_URL` is configured, the app requests a membership-checked
+presigned PUT, uploads bytes, then stores the **R2 object key** in Firestore.
+Display paths call the Worker download action for a short-lived signed GET URL.
+Legacy `https://` values continue to load directly.
 
-## Upload Signer
+## Observability
+
+- Flutter release builds report errors via Firebase Crashlytics (`AppLogger.error`
+  and global Flutter error hooks in `main.dart`).
+- The R2 Worker emits structured `console.log` / `console.error` events
+  (`sign_upload_ok`, `sign_download_ok`, `membership_check_failed`). View them
+  in Cloudflare Workers logs / Logpush.
+
+## Upload And Download Signer
 
 The repo includes a Cloudflare Worker scaffold at:
 
@@ -605,22 +610,14 @@ The repo includes a Cloudflare Worker scaffold at:
 backend/r2-upload-worker
 ```
 
-The Worker verifies Firebase ID tokens before signing uploads. For Circle media
-types (`circleCover`, `messagePhoto`, `pulsePhoto`), it also verifies that the
-authenticated user is a member of the target Circle by reading that user's
-membership document through Firestore. Avatar uploads are scoped to the
-authenticated user.
+The Worker verifies Firebase ID tokens before signing uploads **and downloads**.
+For Circle media types (`circleCover`, `messagePhoto`, `pulsePhoto`), it also
+verifies that the authenticated user is a member of the target Circle by reading
+that user's membership document through Firestore. Avatar keys must be under
+`users/{uid}/`.
 
-On success, the Worker returns:
-
-```json
-{
-  "uploadUrl": "presigned put url",
-  "publicUrl": "public media url",
-  "objectKey": "r2 object key",
-  "method": "PUT"
-}
-```
+Upload success returns `objectKey` (and optional legacy `publicUrl`). Download
+success returns a short-lived signed GET URL (`expiresIn` ~300s).
 
 Flutter reads the signer URL from:
 

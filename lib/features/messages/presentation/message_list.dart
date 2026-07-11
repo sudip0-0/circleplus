@@ -1,17 +1,18 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/providers.dart';
 import '../../../shared/widgets/avatar.dart';
 import '../../../shared/widgets/circlepulse_ui.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_view.dart';
+import '../../../shared/widgets/resolved_network_image.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../domain/message.dart';
 import 'message_controller.dart';
 
-class MessageList extends ConsumerWidget {
+class MessageList extends ConsumerStatefulWidget {
   const MessageList({
     required this.circleId,
     this.padding = const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -24,37 +25,128 @@ class MessageList extends ConsumerWidget {
   final bool showDayPill;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final messages = ref.watch(circleMessagesProvider(circleId));
+  ConsumerState<MessageList> createState() => _MessageListState();
+}
+
+class _MessageListState extends ConsumerState<MessageList> {
+  final List<MessageModel> _older = [];
+  bool _loadingOlder = false;
+  bool _hasMore = true;
+
+  @override
+  void didUpdateWidget(covariant MessageList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.circleId != widget.circleId) {
+      _older.clear();
+      _hasMore = true;
+      _loadingOlder = false;
+    }
+  }
+
+  Future<void> _loadEarlier(List<MessageModel> latest) async {
+    if (_loadingOlder || !_hasMore) return;
+    final anchor = _older.isNotEmpty
+        ? _older.first
+        : (latest.isNotEmpty ? latest.first : null);
+    if (anchor == null) return;
+
+    setState(() => _loadingOlder = true);
+    try {
+      final more = await ref
+          .read(messageRepositoryProvider)
+          .loadOlderMessages(
+            circleId: widget.circleId,
+            before: anchor.createdAt,
+          );
+      if (!mounted) return;
+      setState(() {
+        if (more.isEmpty) {
+          _hasMore = false;
+        } else {
+          final existingIds = {
+            ..._older.map((m) => m.id),
+            ...latest.map((m) => m.id),
+          };
+          _older.insertAll(
+            0,
+            more.where((m) => !existingIds.contains(m.id)),
+          );
+        }
+        _loadingOlder = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingOlder = false);
+    }
+  }
+
+  List<MessageModel> _merged(List<MessageModel> latest) {
+    if (_older.isEmpty) return latest;
+    final latestIds = latest.map((m) => m.id).toSet();
+    final olderOnly = _older.where((m) => !latestIds.contains(m.id));
+    return [...olderOnly, ...latest];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final messages = ref.watch(circleMessagesProvider(widget.circleId));
     final currentUser = ref.watch(currentUserProvider);
 
     return messages.when(
       loading: () => const LoadingView(),
       error: (error, stackTrace) => ErrorView(
         message: error.toString(),
-        onRetry: () => ref.invalidate(circleMessagesProvider(circleId)),
+        onRetry: () => ref.invalidate(circleMessagesProvider(widget.circleId)),
       ),
-      data: (items) {
+      data: (latest) {
+        final items = _merged(latest);
         if (items.isEmpty) {
           return const EmptyState(
             title: 'No messages yet',
             message: 'Start the conversation inside this Circle.',
           );
         }
+
+        final showLoadEarlier = _hasMore && latest.length >= 40;
+        final headerCount =
+            (widget.showDayPill ? 1 : 0) + (showLoadEarlier || _loadingOlder ? 1 : 0);
+
         return ListView.builder(
-          padding: padding,
-          itemCount: items.length + (showDayPill ? 1 : 0),
+          padding: widget.padding,
+          itemCount: items.length + headerCount,
           itemBuilder: (context, index) {
-            if (showDayPill && index == 0) {
-              return const _DayPill(label: 'Today');
+            var cursor = index;
+            if (showLoadEarlier || _loadingOlder) {
+              if (cursor == 0) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Center(
+                    child: _loadingOlder
+                        ? const SizedBox.square(
+                            dimension: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : TextButton(
+                            onPressed: () => _loadEarlier(latest),
+                            child: const Text('Load earlier'),
+                          ),
+                  ),
+                );
+              }
+              cursor -= 1;
             }
-            final message = items[index - (showDayPill ? 1 : 0)];
+            if (widget.showDayPill) {
+              if (cursor == 0) {
+                return const _DayPill(label: 'Today');
+              }
+              cursor -= 1;
+            }
+            final message = items[cursor];
             final isMine = message.senderId == currentUser?.id;
             return _MessageBubble(
               message: message,
               isMine: isMine,
               onDeleteRequest: isMine && !message.isDeleted
-                  ? () => _confirmDelete(context, ref, message)
+                  ? () => _confirmDelete(context, message)
                   : null,
             );
           },
@@ -65,7 +157,6 @@ class MessageList extends ConsumerWidget {
 
   Future<void> _confirmDelete(
     BuildContext context,
-    WidgetRef ref,
     MessageModel message,
   ) async {
     final confirmed = await showDialog<bool>(
@@ -279,7 +370,10 @@ class _MessageBubbleContent extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (message.mediaUrl != null) ...[
-            _MessageImage(url: message.mediaUrl!),
+            _MessageImage(
+              storageRef: message.mediaUrl!,
+              circleId: message.circleId,
+            ),
             if (message.text?.isNotEmpty == true) const SizedBox(height: 10),
           ],
           if (message.text?.isNotEmpty == true)
@@ -306,9 +400,10 @@ class _MessageBubbleContent extends StatelessWidget {
 }
 
 class _MessageImage extends StatelessWidget {
-  const _MessageImage({required this.url});
+  const _MessageImage({required this.storageRef, required this.circleId});
 
-  final String url;
+  final String storageRef;
+  final String circleId;
 
   @override
   Widget build(BuildContext context) {
@@ -319,28 +414,22 @@ class _MessageImage extends StatelessWidget {
 
         return ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: Semantics(
-            image: true,
-            label: 'Photo message',
-            child: CachedNetworkImage(
-              imageUrl: url,
+          child: ResolvedNetworkImage(
+            storageRef: storageRef,
+            circleId: circleId,
+            height: height,
+            width: width,
+            fit: BoxFit.cover,
+            semanticLabel: 'Photo message',
+            placeholder: (_) => SizedBox(
               height: height,
               width: width,
-              fit: BoxFit.cover,
-              placeholder: (context, url) {
-                return SizedBox(
-                  height: height,
-                  width: width,
-                  child: const Center(child: CircularProgressIndicator()),
-                );
-              },
-              errorWidget: (context, url, error) {
-                return SizedBox(
-                  height: height,
-                  width: width,
-                  child: const Center(child: Icon(Icons.broken_image)),
-                );
-              },
+              child: const Center(child: CircularProgressIndicator()),
+            ),
+            errorWidget: (_) => SizedBox(
+              height: height,
+              width: width,
+              child: const Center(child: Icon(Icons.broken_image)),
             ),
           ),
         );

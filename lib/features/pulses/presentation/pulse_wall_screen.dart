@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,6 +5,7 @@ import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_view.dart';
 import '../../../shared/widgets/circlepulse_ui.dart';
+import '../../../shared/widgets/resolved_network_image.dart';
 import 'pulse_controller.dart';
 
 class PulseWallScreen extends ConsumerWidget {
@@ -52,25 +52,21 @@ class PulseWallScreen extends ConsumerWidget {
                         borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(18),
                         ),
-                        child: Semantics(
-                          image: true,
-                          label: pulse.caption?.isNotEmpty == true
+                        child: ResolvedNetworkImage(
+                          storageRef: pulse.photoUrl,
+                          circleId: circleId,
+                          fit: BoxFit.cover,
+                          semanticLabel: pulse.caption?.isNotEmpty == true
                               ? 'Pulse photo from ${pulse.userName}: ${pulse.caption}'
                               : 'Pulse photo from ${pulse.userName}',
-                          child: CachedNetworkImage(
-                            imageUrl: pulse.photoUrl,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => const Center(
-                              child: CircularProgressIndicator(),
+                          placeholder: (_) => const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                          errorWidget: (_) => const Center(
+                            child: Icon(
+                              Icons.broken_image_outlined,
+                              size: 48,
                             ),
-                            errorWidget: (context, url, error) {
-                              return const Center(
-                                child: Icon(
-                                  Icons.broken_image_outlined,
-                                  size: 48,
-                                ),
-                              );
-                            },
                           ),
                         ),
                       ),

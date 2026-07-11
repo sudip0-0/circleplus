@@ -64,12 +64,18 @@ void main() {
         lastMessageAt: now,
         createdAt: now,
         updatedAt: now,
+        status: CircleStatus.active,
+        todayPulseDateKey: '20260516',
+        todayPulseCount: 2,
       );
 
       final restored = CircleModel.fromMap(circle.toMap());
       expect(restored.id, circle.id);
       expect(restored.memberCount, 3);
       expect(restored.inviteCode, 'ABC123');
+      expect(restored.status, CircleStatus.active);
+      expect(restored.todayPulseCount, 2);
+      expect(restored.todayPulseDateKey, '20260516');
     });
   });
 }

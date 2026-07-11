@@ -59,7 +59,7 @@ class MessageController extends AsyncNotifier<void> {
           .read(messageRepositoryProvider)
           .sendPhotoMessage(
             circleId: circleId,
-            mediaUrl: uploaded.publicUrl,
+            mediaUrl: uploaded.objectKey,
             text: text,
             sender: sender,
           );

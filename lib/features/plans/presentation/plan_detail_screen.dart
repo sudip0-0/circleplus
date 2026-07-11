@@ -638,29 +638,34 @@ class _ResponseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: selected ? CirclePulseColors.clay : CirclePulseColors.card,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: CirclePulseColors.outline),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: selected ? Colors.white : CirclePulseColors.clay),
-            const SizedBox(height: 4),
-            Text(
-              '$label\n$count',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: selected ? Colors.white : CirclePulseColors.cocoa,
-                fontWeight: FontWeight.w800,
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$label, $count responses',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: selected ? CirclePulseColors.clay : CirclePulseColors.card,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: CirclePulseColors.outline),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: selected ? Colors.white : CirclePulseColors.clay),
+              const SizedBox(height: 4),
+              Text(
+                '$label\n$count',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: selected ? Colors.white : CirclePulseColors.cocoa,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

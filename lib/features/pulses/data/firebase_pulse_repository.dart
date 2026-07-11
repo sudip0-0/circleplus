@@ -58,29 +58,50 @@ class FirebasePulseRepository implements PulseRepository {
     required String photoUrl,
     required String? caption,
     required String? mood,
-  }) {
+  }) async {
     final key = pulseDateKey(DateTime.now());
     final id = pulseDocumentId(dateKey: key, userId: user.id);
     final now = DateTime.now();
-    final pulse = PulseModel(
-      id: id,
-      circleId: circleId,
-      userId: user.id,
-      userName: user.displayName,
-      userPhotoUrl: user.photoUrl,
-      photoUrl: photoUrl,
-      caption: _blankToNull(caption),
-      mood: _blankToNull(mood),
-      dateKey: key,
-      createdAt: now,
-      updatedAt: now,
-    );
+    final circleRef = _circles.doc(circleId);
+    final pulseRef = circleRef.collection('pulses').doc(id);
 
-    return _circles
-        .doc(circleId)
-        .collection('pulses')
-        .doc(id)
-        .set(pulse.toMap(), SetOptions(merge: true));
+    await _firestore.runTransaction((transaction) async {
+      final circleSnapshot = await transaction.get(circleRef);
+      final pulseSnapshot = await transaction.get(pulseRef);
+      final circleData = circleSnapshot.data() ?? <String, dynamic>{};
+      final isNewPulse = !pulseSnapshot.exists;
+
+      final pulse = PulseModel(
+        id: id,
+        circleId: circleId,
+        userId: user.id,
+        userName: user.displayName,
+        userPhotoUrl: user.photoUrl,
+        photoUrl: photoUrl,
+        caption: _blankToNull(caption),
+        mood: _blankToNull(mood),
+        dateKey: key,
+        createdAt: pulseSnapshot.exists
+            ? PulseModel.fromMap(pulseSnapshot.data()!).createdAt
+            : now,
+        updatedAt: now,
+      );
+
+      transaction.set(pulseRef, pulse.toMap(), SetOptions(merge: true));
+
+      if (!isNewPulse) {
+        return;
+      }
+
+      final existingKey = circleData['todayPulseDateKey'] as String?;
+      final existingCount = (circleData['todayPulseCount'] as int?) ?? 0;
+      final nextCount = existingKey == key ? existingCount + 1 : 1;
+      transaction.update(circleRef, {
+        'todayPulseDateKey': key,
+        'todayPulseCount': nextCount,
+        'updatedAt': now,
+      });
+    });
   }
 
   String? _blankToNull(String? value) {

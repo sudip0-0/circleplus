@@ -1,3 +1,4 @@
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 
 class AppLogger {
@@ -13,6 +14,16 @@ class AppLogger {
     Map<String, Object?> details = const {},
   ]) {
     _write('error', event, {...details, 'error': error});
+    if (!kDebugMode && !kIsWeb) {
+      FirebaseCrashlytics.instance.recordError(
+        error,
+        StackTrace.current,
+        reason: event,
+        information: details.entries
+            .map((e) => '${e.key}=${e.value}')
+            .toList(growable: false),
+      );
+    }
   }
 
   static void info(String event, [Map<String, Object?> details = const {}]) {

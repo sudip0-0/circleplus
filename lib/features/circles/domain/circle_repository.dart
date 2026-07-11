@@ -28,8 +28,8 @@ abstract interface class CircleRepository {
     required String userId,
   });
 
-  /// Deletes the Circle document and its member subcollection.
-  /// Only callable by the creator when they are the last member.
+  /// Soft-deletes the Circle (`status: deleted`) and removes the creator's
+  /// membership. Only callable by the creator when they are the last member.
   Future<void> deleteCircle({
     required String circleId,
     required String creatorId,

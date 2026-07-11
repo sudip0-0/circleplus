@@ -85,7 +85,7 @@ class PulseController extends AsyncNotifier<void> {
           .createOrUpdatePulse(
             circleId: circleId,
             user: user,
-            photoUrl: uploaded.publicUrl,
+            photoUrl: uploaded.objectKey,
             caption: caption,
             mood: mood,
           );

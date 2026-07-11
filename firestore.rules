@@ -37,12 +37,19 @@ service cloud.firestore {
 
     // ─── Membership helpers ───────────────────────────────────────────────────
 
-    // True when the signed-in user already has a member document in this Circle
-    // and the Circle parent document still exists. Requiring the parent blocks
-    // reads/writes against orphaned subcollections after a Circle is deleted.
+    // True when the Circle exists and is not soft-deleted. Missing `status`
+    // is treated as active for legacy documents (map.get default).
+    function isActiveCircle(circleId) {
+      return exists(circlePath(circleId))
+        && get(circlePath(circleId)).data.get('status', 'active') != 'deleted';
+    }
+
+    // True when the signed-in user has a member document in an active Circle.
+    // Soft-deleted Circles deny membership-gated access even if member docs
+    // remain (tombstone + orphan hardening).
     function isCircleMember(circleId) {
       return signedIn()
-        && exists(circlePath(circleId))
+        && isActiveCircle(circleId)
         && exists(memberPath(circleId, request.auth.uid));
     }
 
@@ -111,6 +118,38 @@ service cloud.firestore {
           + responseValue(next, 'cant')  - responseValue(prev, 'cant');
     }
 
+
+    // Pulse denorm on Circle: count may stay the same (caption edit) or +1
+    // (first Pulse today), or reset to 1 when the date key rolls.
+    function validPulseDenormUpdate(circleId) {
+      let dateKey = request.resource.data.todayPulseDateKey;
+      let pulseId = dateKey + '_' + request.auth.uid;
+      let pPath = /databases/$(database)/documents/circles/$(circleId)/pulses/$(pulseId);
+      return isCircleMember(circleId)
+        && dateKey is string
+        && dateKey.matches('^[0-9]{8}$')
+        && request.resource.data.todayPulseCount is int
+        && request.resource.data.todayPulseCount >= 1
+        && existsAfter(pPath)
+        && getAfter(pPath).data.userId == request.auth.uid
+        && getAfter(pPath).data.dateKey == dateKey
+        && (
+          (
+            resource.data.get('todayPulseDateKey', '') == dateKey
+            && (
+              request.resource.data.todayPulseCount
+                == resource.data.get('todayPulseCount', 0)
+              || request.resource.data.todayPulseCount
+                == resource.data.get('todayPulseCount', 0) + 1
+            )
+          )
+          || (
+            resource.data.get('todayPulseDateKey', '') != dateKey
+            && request.resource.data.todayPulseCount == 1
+          )
+        );
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // /users/{userId}
     // ─────────────────────────────────────────────────────────────────────────
@@ -167,25 +206,28 @@ service cloud.firestore {
       allow read: if isCircleMember(circleId);
 
       // Create: the requesting user must be the declared creator and must
-      // seed memberCount = 1 atomically.
+      // seed memberCount = 1 atomically. New Circles are created active.
       allow create: if signedIn()
         && request.resource.data.id == circleId
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.memberCount == 1
+        && request.resource.data.status == 'active'
         && request.resource.data.name is string
         && request.resource.data.name.size() >= 1
         && request.resource.data.name.size() <= 64;
 
-      // Update: three permitted cases only.
+      // Update: four permitted cases only.
       //
       // Case 1 – Join increment: a user is atomically joining and bumps
-      //           memberCount by exactly 1.
+      //           memberCount by exactly 1 (active Circles only).
       // Case 2 – Last-message update: any member may update the lastMessage
       //           preview fields after sending a message.
       // Case 3 – Leave decrement: a member is removing themselves and drops
       //           memberCount by exactly 1.
+      // Case 4 – Soft-delete tombstone: last-member creator sets status deleted.
       allow update: if (
           signedIn()
+          && isActiveCircle(circleId)
           && changedOnly(['memberCount', 'updatedAt'])
           && request.resource.data.memberCount == resource.data.memberCount + 1
           && isJoiningCircle(circleId)
@@ -197,16 +239,19 @@ service cloud.firestore {
           && changedOnly(['memberCount', 'updatedAt'])
           && request.resource.data.memberCount == resource.data.memberCount - 1
           && !existsAfter(memberPath(circleId, request.auth.uid))
+        ) || (
+          isCircleMember(circleId)
+          && resource.data.createdBy == request.auth.uid
+          && resource.data.memberCount == 1
+          && changedOnly(['status', 'updatedAt'])
+          && request.resource.data.status == 'deleted'
+        ) || (
+          changedOnly(['todayPulseDateKey', 'todayPulseCount', 'updatedAt'])
+          && validPulseDenormUpdate(circleId)
         );
 
-      // Delete: only the creator may delete the Circle, and only when they are
-      // the last member (memberCount == 1). The creator's own member document
-      // must also be deleted in the same transaction, proven by existsAfter
-      // returning false for that member document.
-      allow delete: if isCircleMember(circleId)
-        && resource.data.createdBy == request.auth.uid
-        && resource.data.memberCount == 1
-        && !existsAfter(memberPath(circleId, request.auth.uid));
+      // Hard delete from the client is disabled; use soft-delete Case 4.
+      allow delete: if false;
 
       // ── /circles/{circleId}/members/{userId} ─────────────────────────────
 
@@ -229,7 +274,7 @@ service cloud.firestore {
               && getAfter(circlePath(circleId)).data.createdBy == userId
             ) || (
               request.resource.data.role == 'member'
-              && exists(circlePath(circleId))
+              && isActiveCircle(circleId)
               && request.resource.data.inviteCodeUsed is string
               && validInviteCode(request.resource.data.inviteCodeUsed)
               && get(inviteCodePath(request.resource.data.inviteCodeUsed)).data.circleId == circleId
@@ -246,9 +291,9 @@ service cloud.firestore {
         //
         // Case 1 – Leave: member removes themselves and the Circle memberCount
         //          is decremented by exactly 1 in the same transaction.
-        // Case 2 – Last-member creator delete: creator deletes their membership
-        //          while the Circle document is also deleted in the same
-        //          transaction (memberCount must have been 1).
+        // Case 2 – Soft-delete: last-member creator removes membership while
+        //          the Circle is tombstoned (status → deleted) in the same
+        //          transaction.
         allow delete: if isSelf(userId)
           && isCircleMember(circleId)
           && (
@@ -256,7 +301,7 @@ service cloud.firestore {
               getAfter(circlePath(circleId)).data.memberCount
                 == get(circlePath(circleId)).data.memberCount - 1
             ) || (
-              !existsAfter(circlePath(circleId))
+              getAfter(circlePath(circleId)).data.status == 'deleted'
               && get(circlePath(circleId)).data.createdBy == request.auth.uid
               && get(circlePath(circleId)).data.memberCount == 1
             )

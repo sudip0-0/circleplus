@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../shared/widgets/circlepulse_ui.dart';
 
@@ -15,17 +16,38 @@ class AppTheme {
       onPrimary: Colors.white,
     );
 
+    final bodyText = GoogleFonts.dmSansTextTheme(
+      Typography.blackMountainView.apply(
+        bodyColor: CirclePulseColors.cocoa,
+        displayColor: CirclePulseColors.cocoa,
+      ),
+    );
+    final display = GoogleFonts.sourceSerif4TextTheme(bodyText);
+
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: CirclePulseColors.cream,
-      fontFamily: 'Roboto',
+      textTheme: bodyText.copyWith(
+        displayLarge: display.displayLarge,
+        displayMedium: display.displayMedium,
+        displaySmall: display.displaySmall,
+        headlineLarge: display.headlineLarge,
+        headlineMedium: display.headlineMedium,
+        headlineSmall: display.headlineSmall,
+        titleLarge: display.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+      ),
       appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: CirclePulseColors.cocoa,
+        titleTextStyle: GoogleFonts.sourceSerif4(
+          color: CirclePulseColors.cocoa,
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       cardTheme: CardThemeData(
         color: CirclePulseColors.card,
@@ -66,7 +88,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
-          textStyle: const TextStyle(fontWeight: FontWeight.w800),
+          textStyle: GoogleFonts.dmSans(fontWeight: FontWeight.w800),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -87,10 +109,6 @@ class AppTheme {
         selectedColor: CirclePulseColors.clay,
         side: const BorderSide(color: CirclePulseColors.outline),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-      textTheme: Typography.blackMountainView.apply(
-        bodyColor: CirclePulseColors.cocoa,
-        displayColor: CirclePulseColors.cocoa,
       ),
     );
   }

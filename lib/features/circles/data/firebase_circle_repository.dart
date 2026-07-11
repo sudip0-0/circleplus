@@ -86,6 +86,15 @@ class FirebaseCircleRepository implements CircleRepository {
     final memberRef = circleRef.collection('members').doc(user.id);
 
     await _firestore.runTransaction((transaction) async {
+      final circleSnapshot = await transaction.get(circleRef);
+      if (!circleSnapshot.exists) {
+        throw const AppException('No Circle found for that invite code.');
+      }
+      final circleStatus = circleSnapshot.data()?['status'] as String?;
+      if (circleStatus == CircleStatus.deleted.name) {
+        throw const AppException('This Circle is no longer available.');
+      }
+
       final memberSnapshot = await transaction.get(memberRef);
       if (memberSnapshot.exists) {
         throw const AppException('You are already in this Circle.');
@@ -135,7 +144,10 @@ class FirebaseCircleRepository implements CircleRepository {
           for (final circleSnapshot in snapshots) {
             final data = circleSnapshot.data();
             if (circleSnapshot.exists && data != null) {
-              circles.add(CircleModel.fromMap(data));
+              final circle = CircleModel.fromMap(data);
+              if (!circle.isDeleted) {
+                circles.add(circle);
+              }
             }
           }
           circles.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
@@ -205,8 +217,8 @@ class FirebaseCircleRepository implements CircleRepository {
   }) async {
     final circleRef = _circles.doc(circleId);
 
-    // Verify the requester is the creator and is the last member before
-    // deleting. We read inside a transaction to prevent TOCTOU races.
+    // Soft-delete tombstone: set status deleted and remove the creator's
+    // membership. The Circle document is retained so rules can deny access.
     await _firestore.runTransaction((transaction) async {
       final circleSnapshot = await transaction.get(circleRef);
       if (!circleSnapshot.exists) {
@@ -216,6 +228,9 @@ class FirebaseCircleRepository implements CircleRepository {
       if (data['createdBy'] != creatorId) {
         throw const AppException('Only the creator can delete a Circle.');
       }
+      if (data['status'] == CircleStatus.deleted.name) {
+        return;
+      }
       final memberCount = (data['memberCount'] as int?) ?? 0;
       if (memberCount > 1) {
         throw const AppException(
@@ -223,10 +238,13 @@ class FirebaseCircleRepository implements CircleRepository {
         );
       }
 
-      // Delete the creator's own member document and the circle document.
       final memberRef = circleRef.collection('members').doc(creatorId);
+      final now = DateTime.now();
       transaction.delete(memberRef);
-      transaction.delete(circleRef);
+      transaction.update(circleRef, {
+        'status': CircleStatus.deleted.name,
+        'updatedAt': now,
+      });
     });
   }
 

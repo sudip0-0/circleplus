@@ -1,7 +1,9 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class Avatar extends StatelessWidget {
+import 'resolved_network_image.dart';
+
+class Avatar extends ConsumerWidget {
   const Avatar({
     required this.displayName,
     this.photoUrl,
@@ -14,7 +16,7 @@ class Avatar extends StatelessWidget {
   final double radius;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final imageUrl = photoUrl;
     if (imageUrl == null || imageUrl.isEmpty) {
       return CircleAvatar(
@@ -27,12 +29,13 @@ class Avatar extends StatelessWidget {
       radius: radius,
       backgroundColor: Colors.transparent,
       child: ClipOval(
-        child: CachedNetworkImage(
-          imageUrl: imageUrl,
+        child: ResolvedNetworkImage(
+          storageRef: imageUrl,
           width: radius * 2,
           height: radius * 2,
           fit: BoxFit.cover,
-          placeholder: (context, url) => SizedBox(
+          semanticLabel: '$displayName avatar',
+          placeholder: (_) => SizedBox(
             width: radius * 2,
             height: radius * 2,
             child: const Center(
@@ -42,7 +45,7 @@ class Avatar extends StatelessWidget {
               ),
             ),
           ),
-          errorWidget: (context, url, error) =>
+          errorWidget: (_) =>
               CircleAvatar(radius: radius, child: Text(_initial(displayName))),
         ),
       ),

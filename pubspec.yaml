@@ -45,6 +45,8 @@ dependencies:
   async: ^2.13.1
   image: ^4.8.0
   cached_network_image: ^3.4.1
+  firebase_crashlytics: ^5.2.4
+  google_fonts: ^8.1.0
 
 dev_dependencies:
   flutter_test:

@@ -42,7 +42,7 @@ const rules = readFileSync(RULES_PATH, "utf8");
 // ─── Shared test fixtures ─────────────────────────────────────────────────────
 
 const PROJECT_ID = "circleplus-rules-test";
-const FIRESTORE_PORT = 8080;
+const FIRESTORE_PORT = 8085;
 
 // Stable UIDs used across tests.
 const ALICE = "user-alice";
@@ -121,6 +121,7 @@ async function seedBaseline(env: RulesTestEnvironment): Promise<void> {
       createdBy: ALICE,
       inviteCode: INVITE_CODE,
       memberCount: 2,
+      status: "active",
       lastMessageText: null,
       lastMessageAt: null,
       createdAt: now,
@@ -1417,9 +1418,13 @@ describe("Circle delete and orphan guards", () => {
     env = await makeEnv("circle-delete");
   });
 
+  beforeEach(async () => {
+    await env.clearFirestore();
+  });
+
   afterAll(async () => env.cleanup());
 
-  test("last-member creator can delete Circle + own membership atomically", async () => {
+  test("last-member creator can soft-delete Circle + remove own membership", async () => {
     const soloCircleId = "circle-solo-delete";
     await env.withSecurityRulesDisabled(async (ctx) => {
       const db = ctx.firestore();
@@ -1431,6 +1436,7 @@ describe("Circle delete and orphan guards", () => {
         createdBy: ALICE,
         inviteCode: "SOLO01",
         memberCount: 1,
+        status: "active",
         lastMessageText: null,
         lastMessageAt: null,
         createdAt: new Date(),
@@ -1464,8 +1470,128 @@ describe("Circle delete and orphan guards", () => {
     const db = alice.firestore();
     const batch = writeBatch(db);
     batch.delete(doc(db, memberPath(soloCircleId, ALICE)));
-    batch.delete(doc(db, circlePath(soloCircleId)));
+    batch.update(doc(db, circlePath(soloCircleId)), {
+      status: "deleted",
+      updatedAt: new Date(),
+    });
     await assertSucceeds(batch.commit());
+  });
+
+  test("hard delete of Circle document is denied", async () => {
+    const hardId = "circle-hard-delete";
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, circlePath(hardId)), {
+        id: hardId,
+        name: "Hard",
+        createdBy: ALICE,
+        inviteCode: "HARD01",
+        memberCount: 1,
+        status: "active",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      await setDoc(doc(db, memberPath(hardId, ALICE)), {
+        userId: ALICE,
+        circleId: hardId,
+        role: "creator",
+        displayName: "Alice",
+        photoUrl: null,
+        joinedAt: new Date(),
+      });
+    });
+
+    const alice = env.authenticatedContext(ALICE);
+    const db = alice.firestore();
+    const batch = writeBatch(db);
+    batch.delete(doc(db, memberPath(hardId, ALICE)));
+    batch.delete(doc(db, circlePath(hardId)));
+    await assertFails(batch.commit());
+  });
+
+  test("join is denied when Circle status is deleted", async () => {
+    const deletedId = "circle-deleted-join";
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, circlePath(deletedId)), {
+        id: deletedId,
+        name: "Gone",
+        createdBy: ALICE,
+        inviteCode: "GONE01",
+        memberCount: 1,
+        status: "deleted",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      await setDoc(doc(db, inviteCodePath("GONE01")), {
+        code: "GONE01",
+        circleId: deletedId,
+        createdBy: ALICE,
+        createdAt: new Date(),
+      });
+    });
+
+    const bob = env.authenticatedContext(BOB);
+    const db = bob.firestore();
+    const batch = writeBatch(db);
+    batch.set(doc(db, memberPath(deletedId, BOB)), {
+      userId: BOB,
+      circleId: deletedId,
+      role: "member",
+      displayName: "Bob",
+      photoUrl: null,
+      joinedAt: new Date(),
+      inviteCodeUsed: "GONE01",
+    });
+    batch.update(doc(db, circlePath(deletedId)), {
+      memberCount: 2,
+      updatedAt: new Date(),
+    });
+    await assertFails(batch.commit());
+  });
+
+  test("member cannot read Circle or messages after soft-delete tombstone", async () => {
+    const tombId = "circle-tomb-read";
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, circlePath(tombId)), {
+        id: tombId,
+        name: "Tomb",
+        createdBy: ALICE,
+        inviteCode: "TOMB01",
+        memberCount: 1,
+        status: "deleted",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      await setDoc(doc(db, memberPath(tombId, BOB)), {
+        userId: BOB,
+        circleId: tombId,
+        role: "member",
+        displayName: "Bob",
+        photoUrl: null,
+        joinedAt: new Date(),
+        inviteCodeUsed: "TOMB01",
+      });
+      await setDoc(doc(db, messagePath(tombId, "msg-tomb")), {
+        id: "msg-tomb",
+        circleId: tombId,
+        senderId: BOB,
+        senderName: "Bob",
+        senderPhotoUrl: null,
+        type: "text",
+        text: "secret",
+        mediaUrl: null,
+        createdAt: new Date(),
+        updatedAt: null,
+        deletedAt: null,
+      });
+    });
+
+    const bob = env.authenticatedContext(BOB);
+    const db = bob.firestore();
+    await assertFails(getDoc(doc(db, circlePath(tombId))));
+    await assertFails(getDoc(doc(db, messagePath(tombId, "msg-tomb"))));
   });
 
   test("join is denied when Circle parent document is missing", async () => {

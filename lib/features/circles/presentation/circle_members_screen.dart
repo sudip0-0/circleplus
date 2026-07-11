@@ -82,70 +82,74 @@ class CircleMembersScreen extends ConsumerWidget {
               ...items.map(
                 (member) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: WarmCard(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    child: Row(
-                      children: [
-                        Avatar(
-                          displayName: member.displayName,
-                          photoUrl: member.photoUrl,
-                          radius: 24,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                member.displayName,
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(fontWeight: FontWeight.w800),
-                              ),
-                              Text(
-                                member.role.name == 'creator'
-                                    ? 'Admin'
-                                    : 'Member',
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: member.role.name == 'creator'
-                                          ? CirclePulseColors.clay
-                                          : CirclePulseColors.muted,
-                                    ),
-                              ),
-                            ],
+                  child: Semantics(
+                    label:
+                        '${member.displayName}, ${member.role.name == 'creator' ? 'Admin' : 'Member'}',
+                    child: WarmCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        children: [
+                          Avatar(
+                            displayName: member.displayName,
+                            photoUrl: member.photoUrl,
+                            radius: 24,
                           ),
-                        ),
-                        if (member.role.name == 'creator')
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: CirclePulseColors.cardAlt,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: const Text(
-                              'Admin',
-                              style: TextStyle(
-                                color: CirclePulseColors.clay,
-                                fontWeight: FontWeight.w700,
-                              ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  member.displayName,
+                                  style: Theme.of(context).textTheme.titleSmall
+                                      ?.copyWith(fontWeight: FontWeight.w800),
+                                ),
+                                Text(
+                                  member.role.name == 'creator'
+                                      ? 'Admin'
+                                      : 'Member',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: member.role.name == 'creator'
+                                            ? CirclePulseColors.clay
+                                            : CirclePulseColors.muted,
+                                      ),
+                                ),
+                              ],
                             ),
                           ),
-                        IconButton(
-                          tooltip: 'Member options',
-                          onPressed: () => _showMemberOptions(
-                            context,
-                            member,
-                            isCurrentUser: member.userId == currentUserId,
+                          if (member.role.name == 'creator')
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: CirclePulseColors.cardAlt,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: const Text(
+                                'Admin',
+                                style: TextStyle(
+                                  color: CirclePulseColors.clay,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          IconButton(
+                            tooltip: 'Member options',
+                            onPressed: () => _showMemberOptions(
+                              context,
+                              member,
+                              isCurrentUser: member.userId == currentUserId,
+                            ),
+                            icon: const Icon(Icons.more_horiz),
                           ),
-                          icon: const Icon(Icons.more_horiz),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -204,7 +208,7 @@ class _LeaveCircleButton extends ConsumerWidget {
               )
             : const Icon(Icons.exit_to_app_outlined),
         label: Text(
-          isCreator && isLastMember ? 'Delete Circle' : 'Leave Circle',
+          isCreator && isLastMember ? 'Close Circle' : 'Leave Circle',
         ),
         onPressed: controllerState.isLoading
             ? null
@@ -222,7 +226,7 @@ class _LeaveCircleButton extends ConsumerWidget {
           title: const Text('Cannot leave yet'),
           content: const Text(
             "You created this Circle. You can't leave while other members are here.\n\n"
-            'You can delete the Circle once everyone else has left, or ask another member to take over hosting in a future update.',
+            'You can close the Circle once everyone else has left, or ask another member to take over hosting in a future update.',
           ),
           actions: [
             TextButton(
@@ -236,14 +240,14 @@ class _LeaveCircleButton extends ConsumerWidget {
     }
 
     if (isCreator && isLastMember) {
-      // Creator is the last member: offer to delete the Circle.
+      // Creator is the last member: soft-delete (tombstone) the Circle.
       showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Delete Circle?'),
+          title: const Text('Close this Circle?'),
           content: const Text(
-            "You're the only member left. Deleting removes this Circle from the app. "
-            "Chat history and media cleanup may complete later; invite codes for this Circle will stop working for new joins.",
+            "You're the only member left. Closing removes this Circle from everyone's home. "
+            'Invite codes stop working for new joins. Chat history and media cleanup may complete later.',
           ),
           actions: [
             TextButton(
@@ -264,7 +268,7 @@ class _LeaveCircleButton extends ConsumerWidget {
                   context.go('/home');
                 }
               },
-              child: const Text('Delete'),
+              child: const Text('Close Circle'),
             ),
           ],
         ),

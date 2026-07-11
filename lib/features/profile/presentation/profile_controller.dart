@@ -102,7 +102,7 @@ class ProfileController extends AsyncNotifier<void> {
           contentType: contentType ?? 'image/jpeg',
           fileExtension: fileExtension ?? 'jpg',
         )
-        .then((uploaded) => uploaded.publicUrl);
+        .then((uploaded) => uploaded.objectKey);
   }
 
   String? _blankToNull(String? value) {

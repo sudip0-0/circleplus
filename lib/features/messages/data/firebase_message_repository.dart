@@ -13,8 +13,13 @@ class FirebaseMessageRepository implements MessageRepository {
   CollectionReference<Map<String, dynamic>> get _circles =>
       _firestore.collection('circles');
 
+  static const int defaultPageSize = 40;
+
   @override
-  Stream<List<MessageModel>> watchMessages(String circleId, {int limit = 100}) {
+  Stream<List<MessageModel>> watchMessages(
+    String circleId, {
+    int limit = defaultPageSize,
+  }) {
     return _circles
         .doc(circleId)
         .collection('messages')
@@ -27,6 +32,26 @@ class FirebaseMessageRepository implements MessageRepository {
               .toList();
           return messages.reversed.toList();
         });
+  }
+
+  @override
+  Future<List<MessageModel>> loadOlderMessages({
+    required String circleId,
+    required DateTime before,
+    int limit = defaultPageSize,
+  }) async {
+    final snapshot = await _circles
+        .doc(circleId)
+        .collection('messages')
+        .orderBy('createdAt', descending: true)
+        .startAfter([Timestamp.fromDate(before)])
+        .limit(limit)
+        .get();
+
+    final messages = snapshot.docs
+        .map((doc) => MessageModel.fromMap(doc.data()))
+        .toList();
+    return messages.reversed.toList();
   }
 
   @override

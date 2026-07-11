@@ -147,9 +147,10 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [ ] Deploy R2 Worker: `wrangler deploy` (from backend/r2-upload-worker)
 - [ ] Test basic access manually (see Manual Smoke Test Checklist below)
 
-**Manual deploy required:** CI runs analyze/unit tests and TypeScript compile for
-rules-tests; it does not deploy Firebase or Cloudflare. Keep the boxes above
-unchecked until you run those commands against your project.
+**Manual deploy required:** CI runs Flutter analyze/test, rules TypeScript
+compile, and Firestore emulator rules-tests. It does not deploy Firebase or
+Cloudflare. Keep the boxes above unchecked until you run those commands against
+your project. See `DEPLOY_CHECKLIST.md` for the full gate.
 
 Firestore rules are configured locally in `firestore.rules` and referenced from `firebase.json`. Deploy with `firebase deploy --only firestore`.
 
@@ -202,7 +203,7 @@ Firestore indexes are configured locally in `firestore.indexes.json`. Required i
 - Reactions
 - Group cover images
 - Profile avatars
-- Message pagination
+- [x] Message pagination
 
 ### P2: Later
 
@@ -216,27 +217,27 @@ Firestore indexes are configured locally in `firestore.indexes.json`. Required i
 
 ## Known Product Decisions
 
-### Decision: Public R2 media URLs for MVP
+### Decision: Signed R2 downloads for all media
 
 Reason:
-Presigned upload + public object URLs keep the upload Worker simple. Firestore
-membership still protects stored URLs, but anyone who obtains a media URL can
-fetch the bytes without Firebase Auth. Authenticated/signed downloads are
-deferred until after beta.
+Uploads and downloads go through the Worker with Firebase Auth (and Circle
+membership for Circle media). Firestore stores object keys; the app resolves
+short-lived signed GET URLs for display.
 
-### Decision: Client Circle delete does not cascade yet
-
-Reason:
-Last-member creator delete removes the Circle parent and creator membership.
-Subcollections and invite-code docs may remain until a trusted backend recursive
-delete + invite revoke ships. Rules require a living Circle parent for
-membership-gated reads/writes so orphaned content is not readable.
-
-### Decision: Home Pulse listener fan-out accepted for MVP
+### Decision: Circle soft-delete tombstone
 
 Reason:
-Home opens one today-Pulse query (and my-Pulse stream) per Circle while visible.
-Acceptable for small groups; denormalize progress onto Circle docs before scaling.
+Last-member creator close sets `status: deleted` and removes their membership.
+The Circle document remains so rules can deny access. Subcollections and invite
+codes may linger until a trusted backend cleanup ships; join and membership
+reads require an active Circle.
+
+### Decision: Home Pulse progress is denormalized on Circle
+
+Reason:
+Pulse create maintains `todayPulseDateKey` / `todayPulseCount` on the Circle.
+Home reads those fields instead of N live Pulse queries. Pulse wall still uses
+the live today query. `dateKey` is local-device calendar day (`yyyyMMdd`).
 
 ### Decision: Pulse “today only” enforced mainly in the client (MVP)
 
@@ -328,7 +329,28 @@ Security rules are now covered by the Firebase Emulator test harness in `rules-t
 - [ ] Plan count-only writes are denied unless paired with the current user's response write
 - [ ] R2 signer denies Circle media signing for signed-in non-members
 
-## Session 8 Completed Work (2026-07-11) — Audit remediation A–E
+## Session 9 Completed Work (2026-07-11) — Score 95 remediation
+
+### Deploy / observability / media
+- `DEPLOY_CHECKLIST.md` gate for Firestore + Worker
+- Crashlytics + release `AppLogger` forwarding
+- Worker signed download + Flutter `objectKey` / `ResolvedNetworkImage`
+
+### AuthZ / data
+- Circle soft-delete tombstone (`status: deleted`); hard delete denied
+- Home Pulse denorm (`todayPulseDateKey` / `todayPulseCount`); message Load earlier
+- CI emulator rules-tests + Dependabot
+
+### Quality / UI
+- Controller + ErrorView tests; Source Serif 4 + DM Sans; Semantics; responsive Home/Room
+
+### Manual review still required
+- Live `firebase deploy --only firestore` and `wrangler deploy` (AuthZ)
+- Firebase Crashlytics enablement in console
+
+### Verification
+- `flutter analyze` — 0 issues
+- `flutter test` — all passing
 
 ### Critical / security
 - Fixed Delete Circle rules for last-member creator transaction

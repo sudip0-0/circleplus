@@ -1,8 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/widgets/circlepulse_ui.dart';
+import '../../../../shared/widgets/resolved_network_image.dart';
 import '../../../pulses/presentation/pulse_controller.dart';
 
 class CircleRoomMomentsPanel extends ConsumerWidget {
@@ -51,16 +51,15 @@ class CircleRoomMomentsPanel extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(12),
                         child: AspectRatio(
                           aspectRatio: 1.55,
-                          child: Semantics(
-                            image: true,
-                            label: 'Recent Pulse from ${pulse.userName}',
-                            child: CachedNetworkImage(
-                              imageUrl: pulse.photoUrl,
-                              fit: BoxFit.cover,
-                              errorWidget: (context, url, error) => Container(
-                                color: CirclePulseColors.cardAlt,
-                                child: const Icon(Icons.image_outlined),
-                              ),
+                          child: ResolvedNetworkImage(
+                            storageRef: pulse.photoUrl,
+                            circleId: circleId,
+                            fit: BoxFit.cover,
+                            semanticLabel:
+                                'Recent Pulse from ${pulse.userName}',
+                            errorWidget: (_) => Container(
+                              color: CirclePulseColors.cardAlt,
+                              child: const Icon(Icons.image_outlined),
                             ),
                           ),
                         ),
