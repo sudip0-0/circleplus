@@ -38,11 +38,28 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
 // Presigned URL expiry in seconds (5 minutes is enough for the Flutter upload).
 const PRESIGNED_URL_EXPIRY_SECONDS = 300;
 
-// Allowed MIME types.
-const ALLOWED_MIME_PREFIX = 'image/';
+// Allowed MIME types (exact allow-list; SVG rejected).
+const ALLOWED_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+]);
 
 // Allowed file extensions (explicit allow-list).
 const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif']);
+
+// MIME ↔ extension pairs that must match.
+const MIME_EXTENSIONS: Record<string, Set<string>> = {
+  'image/jpeg': new Set(['jpg', 'jpeg']),
+  'image/png': new Set(['png']),
+  'image/webp': new Set(['webp']),
+  'image/heic': new Set(['heic']),
+  'image/heif': new Set(['heif']),
+};
+
+const SAFE_CIRCLE_ID = /^[A-Za-z0-9_-]{1,128}$/;
 
 // ─── JWKS cache (module-level, reused across invocations) ────────────────────
 
@@ -132,17 +149,19 @@ export default {
       region: 'auto',
     });
 
-    const uploadUrl = `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${env.R2_BUCKET_NAME}/${objectKey}`;
+    const uploadUrl =
+      `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/` +
+      `${env.R2_BUCKET_NAME}/${objectKey}` +
+      `?X-Amz-Expires=${PRESIGNED_URL_EXPIRY_SECONDS}`;
 
     const signed = await aws.sign(uploadUrl, {
       method: 'PUT',
       headers: {
         'content-type': body.contentType!,
+        'content-length': String(body.contentLength!),
       },
       aws: {
         signQuery: true,
-        // Pin expiry to a short window so leaked URLs cannot be replayed.
-        expiresIn: PRESIGNED_URL_EXPIRY_SECONDS,
       },
     });
 
@@ -152,6 +171,7 @@ export default {
       type: body.type,
       userId: firebaseUser.userId,
       objectKey,
+      contentLength: body.contentLength,
     });
 
     return okJson(
@@ -162,6 +182,7 @@ export default {
         method: 'PUT',
         headers: {
           'content-type': body.contentType,
+          'content-length': String(body.contentLength),
         },
         expiresInSeconds: PRESIGNED_URL_EXPIRY_SECONDS,
       },
@@ -207,8 +228,8 @@ function validateSignRequest(body: SignRequest): string | null {
     return 'Invalid upload type. Must be one of: avatar, circleCover, messagePhoto, pulsePhoto';
   }
 
-  if (!body.contentType || !body.contentType.startsWith(ALLOWED_MIME_PREFIX)) {
-    return 'Only image uploads are allowed';
+  if (!body.contentType || !ALLOWED_MIME_TYPES.has(body.contentType)) {
+    return `Only these image types are allowed: ${[...ALLOWED_MIME_TYPES].join(', ')}`;
   }
 
   if (!body.fileExtension || !/^\.?[a-zA-Z0-9]{2,5}$/.test(body.fileExtension)) {
@@ -220,25 +241,26 @@ function validateSignRequest(body: SignRequest): string | null {
     return `File extension not allowed. Allowed: ${[...ALLOWED_EXTENSIONS].join(', ')}`;
   }
 
+  const allowedExtsForMime = MIME_EXTENSIONS[body.contentType];
+  if (!allowedExtsForMime || !allowedExtsForMime.has(normalizedExt)) {
+    return 'File extension does not match content type';
+  }
+
   if (isCircleMediaType(body.type) && !body.circleId) {
     return 'circleId is required for Circle media';
   }
 
-  if (body.circleId) {
-    // Prevent path traversal or injection in the object key.
-    if (body.circleId.includes('/') || body.circleId.includes('..') || body.circleId.length > 128) {
-      return 'Invalid circleId';
-    }
+  if (body.circleId && !SAFE_CIRCLE_ID.test(body.circleId)) {
+    return 'Invalid circleId';
   }
 
-  if (body.contentLength !== undefined) {
-    if (
-      typeof body.contentLength !== 'number' ||
-      body.contentLength <= 0 ||
-      body.contentLength > MAX_UPLOAD_BYTES
-    ) {
-      return `File too large. Maximum allowed size is ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB`;
-    }
+  if (
+    typeof body.contentLength !== 'number' ||
+    !Number.isFinite(body.contentLength) ||
+    body.contentLength <= 0 ||
+    body.contentLength > MAX_UPLOAD_BYTES
+  ) {
+    return `contentLength is required and must be between 1 and ${MAX_UPLOAD_BYTES} bytes`;
   }
 
   return null;

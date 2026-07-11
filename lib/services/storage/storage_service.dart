@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
 import '../../core/errors/app_exception.dart';
@@ -43,10 +42,6 @@ abstract interface class StorageService {
   });
 }
 
-final storageServiceProvider = Provider<StorageService>((ref) {
-  return R2PresignedUrlStorageService();
-});
-
 class R2PresignedUrlStorageService implements StorageService {
   R2PresignedUrlStorageService({
     http.Client? client,
@@ -83,10 +78,11 @@ class R2PresignedUrlStorageService implements StorageService {
       throw const AppException('You must be signed in to upload media.');
     }
 
-    final signRequest = {
+    final signRequest = <String, Object?>{
       'type': type.requestValue,
       'contentType': contentType,
       'fileExtension': fileExtension,
+      'contentLength': bytes.length,
     };
     if (circleId != null) {
       signRequest['circleId'] = circleId;
@@ -115,9 +111,22 @@ class R2PresignedUrlStorageService implements StorageService {
       throw const AppException('Upload signer returned an invalid response.');
     }
 
+    final responseHeaders = body['headers'];
+    final uploadHeaders = <String, String>{
+      'content-type': contentType,
+      'content-length': '${bytes.length}',
+    };
+    if (responseHeaders is Map) {
+      responseHeaders.forEach((key, value) {
+        if (key is String && value is String) {
+          uploadHeaders[key] = value;
+        }
+      });
+    }
+
     final uploadResponse = await _client.put(
       Uri.parse(uploadUrl),
-      headers: {'content-type': contentType},
+      headers: uploadHeaders,
       body: bytes,
     );
     if (uploadResponse.statusCode < 200 || uploadResponse.statusCode >= 300) {

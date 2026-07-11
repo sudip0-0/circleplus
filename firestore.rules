@@ -37,9 +37,13 @@ service cloud.firestore {
 
     // ─── Membership helpers ───────────────────────────────────────────────────
 
-    // True when the signed-in user already has a member document in this Circle.
+    // True when the signed-in user already has a member document in this Circle
+    // and the Circle parent document still exists. Requiring the parent blocks
+    // reads/writes against orphaned subcollections after a Circle is deleted.
     function isCircleMember(circleId) {
-      return signedIn() && exists(memberPath(circleId, request.auth.uid));
+      return signedIn()
+        && exists(circlePath(circleId))
+        && exists(memberPath(circleId, request.auth.uid));
     }
 
     // True during a batch/transaction where the user is simultaneously creating
@@ -78,6 +82,7 @@ service cloud.firestore {
       let prev  = exists(rPath) ? get(rPath).data.response : '';
       let next  = getAfter(rPath).data.response;
       return isCircleMember(circleId)
+        && resource.data.status == 'active'
         && getAfter(rPath).data.userId == request.auth.uid
         && next in ['in', 'maybe', 'cant']
         && request.resource.data.inCount    == resource.data.inCount
@@ -94,8 +99,8 @@ service cloud.firestore {
       let rPath = planResponsePath(circleId, planId, userId);
       let prev  = exists(rPath) ? get(rPath).data.response : '';
       let next  = request.resource.data.response;
-      return
-        getAfter(planPath(circleId, planId)).data.inCount ==
+      return get(planPath(circleId, planId)).data.status == 'active'
+        && getAfter(planPath(circleId, planId)).data.inCount ==
           get(planPath(circleId, planId)).data.inCount
           + responseValue(next, 'in')    - responseValue(prev, 'in')
         && getAfter(planPath(circleId, planId)).data.maybeCount ==
@@ -224,22 +229,38 @@ service cloud.firestore {
               && getAfter(circlePath(circleId)).data.createdBy == userId
             ) || (
               request.resource.data.role == 'member'
+              && exists(circlePath(circleId))
               && request.resource.data.inviteCodeUsed is string
               && validInviteCode(request.resource.data.inviteCodeUsed)
               && get(inviteCodePath(request.resource.data.inviteCodeUsed)).data.circleId == circleId
+              // Join must bump memberCount by exactly 1 in the same commit.
+              && getAfter(circlePath(circleId)).data.memberCount
+                == get(circlePath(circleId)).data.memberCount + 1
             )
           );
 
         // Update is forbidden (membership fields are immutable).
         allow update: if false;
 
-        // Delete: a member may remove their own membership document to leave
-        // the Circle. The Circle's memberCount must be decremented by exactly 1
-        // in the same transaction.
+        // Delete: two cases.
+        //
+        // Case 1 – Leave: member removes themselves and the Circle memberCount
+        //          is decremented by exactly 1 in the same transaction.
+        // Case 2 – Last-member creator delete: creator deletes their membership
+        //          while the Circle document is also deleted in the same
+        //          transaction (memberCount must have been 1).
         allow delete: if isSelf(userId)
           && isCircleMember(circleId)
-          && getAfter(circlePath(circleId)).data.memberCount
-             == get(circlePath(circleId)).data.memberCount - 1;
+          && (
+            (
+              getAfter(circlePath(circleId)).data.memberCount
+                == get(circlePath(circleId)).data.memberCount - 1
+            ) || (
+              !existsAfter(circlePath(circleId))
+              && get(circlePath(circleId)).data.createdBy == request.auth.uid
+              && get(circlePath(circleId)).data.memberCount == 1
+            )
+          );
       }
 
       // ── /circles/{circleId}/messages/{messageId} ─────────────────────────

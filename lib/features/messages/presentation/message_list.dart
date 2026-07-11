@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -29,7 +30,10 @@ class MessageList extends ConsumerWidget {
 
     return messages.when(
       loading: () => const LoadingView(),
-      error: (error, stackTrace) => ErrorView(message: error.toString()),
+      error: (error, stackTrace) => ErrorView(
+        message: error.toString(),
+        onRetry: () => ref.invalidate(circleMessagesProvider(circleId)),
+      ),
       data: (items) {
         if (items.isEmpty) {
           return const EmptyState(
@@ -90,7 +94,6 @@ class MessageList extends ConsumerWidget {
         .softDeleteMessage(
           circleId: message.circleId,
           messageId: message.id,
-          senderId: message.senderId,
         );
   }
 }
@@ -316,28 +319,29 @@ class _MessageImage extends StatelessWidget {
 
         return ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: Image.network(
-            url,
-            height: height,
-            width: width,
-            fit: BoxFit.cover,
-            loadingBuilder: (context, child, progress) {
-              if (progress == null) {
-                return child;
-              }
-              return SizedBox(
-                height: height,
-                width: width,
-                child: const Center(child: CircularProgressIndicator()),
-              );
-            },
-            errorBuilder: (context, error, stackTrace) {
-              return SizedBox(
-                height: height,
-                width: width,
-                child: const Center(child: Icon(Icons.broken_image)),
-              );
-            },
+          child: Semantics(
+            image: true,
+            label: 'Photo message',
+            child: CachedNetworkImage(
+              imageUrl: url,
+              height: height,
+              width: width,
+              fit: BoxFit.cover,
+              placeholder: (context, url) {
+                return SizedBox(
+                  height: height,
+                  width: width,
+                  child: const Center(child: CircularProgressIndicator()),
+                );
+              },
+              errorWidget: (context, url, error) {
+                return SizedBox(
+                  height: height,
+                  width: width,
+                  child: const Center(child: Icon(Icons.broken_image)),
+                );
+              },
+            ),
           ),
         );
       },

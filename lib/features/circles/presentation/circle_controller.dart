@@ -1,17 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/providers.dart';
 import '../../../core/utils/app_logger.dart';
+import '../../../core/utils/require_current_profile.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../profile/domain/app_user.dart';
-import '../../profile/presentation/profile_providers.dart';
-import '../data/firebase_circle_repository.dart';
 import '../domain/circle.dart';
 import '../domain/circle_member.dart';
-import '../domain/circle_repository.dart';
-
-final circleRepositoryProvider = Provider<CircleRepository>((ref) {
-  return FirebaseCircleRepository();
-});
 
 final userCirclesProvider = StreamProvider<List<CircleModel>>((ref) {
   final user = ref.watch(currentUserProvider);
@@ -114,13 +109,10 @@ class CircleController extends AsyncNotifier<void> {
     if (user == null) {
       throw StateError('You must be signed in.');
     }
-    final profile = await ref
-        .read(profileRepositoryProvider)
-        .getProfile(user.id);
-    if (profile == null) {
-      throw StateError('Create your profile before using Circles.');
-    }
-    return profile;
+    return requireCurrentProfile(
+      profileRepository: ref.read(profileRepositoryProvider),
+      userId: user.id,
+    );
   }
 
   void _logState(String event, [Map<String, Object?> details = const {}]) {

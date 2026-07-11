@@ -9,10 +9,11 @@ import '../../../shared/widgets/circlepulse_ui.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_view.dart';
 import '../../plans/presentation/plan_controller.dart';
-import '../../pulses/presentation/pulse_controller.dart';
 import '../domain/circle.dart';
 import '../domain/circle_member.dart';
 import 'circle_controller.dart';
+import 'widgets/circle_room_moments.dart';
+import 'widgets/circle_room_pulse_panel.dart';
 
 class CircleRoomScreen extends ConsumerWidget {
   const CircleRoomScreen({required this.circleId, super.key});
@@ -26,10 +27,16 @@ class CircleRoomScreen extends ConsumerWidget {
     return WarmScaffold(
       body: circle.when(
         loading: () => const LoadingView(),
-        error: (error, stackTrace) => ErrorView(message: error.toString()),
+        error: (error, stackTrace) => ErrorView(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(circleProvider(circleId)),
+        ),
         data: (item) {
           if (item == null) {
-            return const ErrorView(message: 'Circle was not found.');
+            return ErrorView(
+              message: 'Circle was not found.',
+              onRetry: () => ref.invalidate(circleProvider(circleId)),
+            );
           }
 
           return CustomScrollView(
@@ -49,7 +56,7 @@ class CircleRoomScreen extends ConsumerWidget {
                       _DescriptionPanel(description: item.description!.trim()),
                       const SizedBox(height: 10),
                     ],
-                    _PulseProgressPanel(circleId: circleId),
+                    CircleRoomPulsePanel(circleId: circleId),
                     const SizedBox(height: 12),
                     _QuickActions(circleId: circleId),
                     const SizedBox(height: 12),
@@ -57,7 +64,7 @@ class CircleRoomScreen extends ConsumerWidget {
                     const SizedBox(height: 12),
                     _UpcomingPlanPanel(circleId: circleId),
                     const SizedBox(height: 12),
-                    _RecentMomentsPanel(circleId: circleId),
+                    CircleRoomMomentsPanel(circleId: circleId),
                     const SizedBox(height: 18),
                     _OpenChatButton(circleId: circleId),
                   ],
@@ -347,82 +354,6 @@ class _DescriptionPanel extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PulseProgressPanel extends ConsumerWidget {
-  const _PulseProgressPanel({required this.circleId});
-
-  final String circleId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final circle = ref.watch(circleProvider(circleId));
-    final pulses = ref.watch(todayPulsesProvider(circleId));
-    final myPulse = ref.watch(myTodayPulseProvider(circleId));
-
-    final memberCount = circle.asData?.value?.memberCount ?? 0;
-
-    return WarmCard(
-      padding: const EdgeInsets.all(16),
-      child: pulses.when(
-        loading: () => const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            LinearProgressIndicator(),
-            SizedBox(height: 12),
-            Text("Loading today's Pulse progress..."),
-          ],
-        ),
-        error: (error, stackTrace) => Text(
-          'Could not load Pulse progress.',
-          style: TextStyle(color: Theme.of(context).colorScheme.error),
-        ),
-        data: (items) {
-          final posted = items.length;
-          final total = memberCount == 0 ? posted : memberCount;
-          final progress = total == 0 ? 0.0 : (posted / total).clamp(0.0, 1.0);
-          final hasPosted = myPulse.maybeWhen(
-            data: (pulse) => pulse != null,
-            orElse: () => false,
-          );
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Today's Pulse progress",
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '$posted of $total posted',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 7,
-                  backgroundColor: CirclePulseColors.outline,
-                  color: CirclePulseColors.clay,
-                ),
-              ),
-              const SizedBox(height: 14),
-              PrimaryGradientButton(
-                label: hasPosted ? 'Update Pulse' : 'Add Pulse',
-                icon: hasPosted ? Icons.edit_outlined : Icons.add_a_photo,
-                onPressed: () =>
-                    context.push('/circles/$circleId/pulse/create'),
-              ),
-            ],
-          );
-        },
       ),
     );
   }
@@ -752,75 +683,6 @@ class _MetaIconText extends StatelessWidget {
           ).textTheme.bodySmall?.copyWith(color: CirclePulseColors.muted),
         ),
       ],
-    );
-  }
-}
-
-class _RecentMomentsPanel extends ConsumerWidget {
-  const _RecentMomentsPanel({required this.circleId});
-
-  final String circleId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final pulses = ref.watch(todayPulsesProvider(circleId));
-
-    return WarmCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Recent shared moments',
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 10),
-          pulses.when(
-            loading: () => const LinearProgressIndicator(),
-            error: (error, stackTrace) => Text(
-              'Could not load moments.',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-            data: (items) {
-              if (items.isEmpty) {
-                return Text(
-                  'No Pulse photos yet today.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: CirclePulseColors.muted,
-                  ),
-                );
-              }
-
-              return Row(
-                children: items.take(3).map((pulse) {
-                  return Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: AspectRatio(
-                          aspectRatio: 1.55,
-                          child: Image.network(
-                            pulse.photoUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                                  color: CirclePulseColors.cardAlt,
-                                  child: const Icon(Icons.image_outlined),
-                                ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
-        ],
-      ),
     );
   }
 }

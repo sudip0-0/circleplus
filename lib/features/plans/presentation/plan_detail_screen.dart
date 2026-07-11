@@ -12,6 +12,7 @@ import '../../auth/presentation/auth_controller.dart';
 import '../domain/plan.dart';
 import '../domain/plan_response.dart';
 import 'plan_controller.dart';
+import 'widgets/plan_cancelled_banner.dart';
 
 class PlanDetailScreen extends ConsumerStatefulWidget {
   const PlanDetailScreen({
@@ -116,45 +117,22 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
       ),
       body: plan.when(
         loading: () => const LoadingView(),
-        error: (error, stackTrace) => ErrorView(message: error.toString()),
+        error: (error, stackTrace) => ErrorView(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(planProvider(args)),
+        ),
         data: (item) {
           if (item == null) {
-            return const ErrorView(message: 'Plan was not found.');
+            return ErrorView(
+              message: 'Plan was not found.',
+              onRetry: () => ref.invalidate(planProvider(args)),
+            );
           }
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             children: [
-              if (item.status == PlanStatus.cancelled) ...[
-                Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.red.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.cancel_outlined,
-                        color: Colors.red.shade700,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'This plan has been cancelled.',
-                        style: TextStyle(
-                          color: Colors.red.shade700,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              if (item.status == PlanStatus.cancelled)
+                const PlanCancelledBanner(),
               WarmCard(
                 padding: EdgeInsets.zero,
                 child: Column(
@@ -283,8 +261,10 @@ class _PlanDetailScreenState extends ConsumerState<PlanDetailScreen> {
               const SizedBox(height: 8),
               responses.when(
                 loading: () => const SizedBox(height: 96, child: LoadingView()),
-                error: (error, stackTrace) =>
-                    ErrorView(message: error.toString()),
+                error: (error, stackTrace) => ErrorView(
+                  message: error.toString(),
+                  onRetry: () => ref.invalidate(planResponsesProvider(args)),
+                ),
                 data: (items) {
                   if (items.isEmpty) {
                     return const EmptyState(

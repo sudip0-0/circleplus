@@ -20,6 +20,7 @@ class FirebasePlanRepository implements PlanRepository {
         .doc(circleId)
         .collection('plans')
         .orderBy('startsAt', descending: true)
+        .limit(50)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
@@ -36,6 +37,7 @@ class FirebasePlanRepository implements PlanRepository {
         .where('status', isEqualTo: PlanStatus.active.name)
         .where('startsAt', isGreaterThanOrEqualTo: DateTime.now())
         .orderBy('startsAt')
+        .limit(25)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs

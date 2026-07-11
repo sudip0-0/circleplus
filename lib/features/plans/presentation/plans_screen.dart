@@ -33,8 +33,10 @@ class PlansScreen extends ConsumerWidget {
       ),
       body: plans.when(
         loading: () => const LoadingView(),
-        error: (error, stackTrace) =>
-            ErrorView(message: 'Could not load Plans: $error'),
+        error: (error, stackTrace) => ErrorView(
+          message: 'Could not load Plans: $error',
+          onRetry: () => ref.invalidate(allPlansProvider(circleId)),
+        ),
         data: (items) {
           if (items.isEmpty) {
             return EmptyState(

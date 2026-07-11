@@ -1,16 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/providers.dart';
 import '../../../core/utils/app_logger.dart';
-import '../../profile/presentation/profile_providers.dart';
-import '../data/firebase_auth_repository.dart';
-import '../domain/auth_repository.dart';
 import '../domain/auth_user.dart';
-
-final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return FirebaseAuthRepository(
-    profileRepository: ref.watch(profileRepositoryProvider),
-  );
-});
 
 final authStateProvider = StreamProvider<AuthUser?>((ref) {
   return ref.watch(authRepositoryProvider).authStateChanges();

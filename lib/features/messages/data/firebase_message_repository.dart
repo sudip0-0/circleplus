@@ -104,16 +104,16 @@ class FirebaseMessageRepository implements MessageRepository {
   Future<void> softDeleteMessage({
     required String circleId,
     required String messageId,
-    required String senderId,
   }) async {
     final messageRef = _circles
         .doc(circleId)
         .collection('messages')
         .doc(messageId);
+    // Rules require text/mediaUrl keys to be absent (not null).
     await messageRef.update({
       'type': 'deleted',
-      'text': null,
-      'mediaUrl': null,
+      'text': FieldValue.delete(),
+      'mediaUrl': FieldValue.delete(),
       'deletedAt': DateTime.now(),
     });
   }

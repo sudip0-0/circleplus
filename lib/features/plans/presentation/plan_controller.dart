@@ -1,17 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/providers.dart';
 import '../../../core/utils/app_logger.dart';
+import '../../../core/utils/require_current_profile.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../profile/domain/app_user.dart';
-import '../../profile/presentation/profile_providers.dart';
-import '../data/firebase_plan_repository.dart';
 import '../domain/plan.dart';
-import '../domain/plan_repository.dart';
 import '../domain/plan_response.dart';
-
-final planRepositoryProvider = Provider<PlanRepository>((ref) {
-  return FirebasePlanRepository();
-});
 
 final allPlansProvider = StreamProvider.family<List<PlanModel>, String>((
   ref,
@@ -153,13 +148,10 @@ class PlanController extends AsyncNotifier<void> {
     if (user == null) {
       throw StateError('You must be signed in.');
     }
-    final profile = await ref
-        .read(profileRepositoryProvider)
-        .getProfile(user.id);
-    if (profile == null) {
-      throw StateError('Create your profile before using Plans.');
-    }
-    return profile;
+    return requireCurrentProfile(
+      profileRepository: ref.read(profileRepositoryProvider),
+      userId: user.id,
+    );
   }
 
   void _logState(String event, [Map<String, Object?> details = const {}]) {

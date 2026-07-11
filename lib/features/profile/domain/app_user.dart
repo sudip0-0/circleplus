@@ -1,3 +1,5 @@
+import '../../../core/utils/firestore_date.dart';
+
 class AppUser {
   const AppUser({
     required this.id,
@@ -56,25 +58,8 @@ class AppUser {
       email: map['email'] as String? ?? '',
       photoUrl: map['photoUrl'] as String?,
       bio: map['bio'] as String?,
-      createdAt: _readDate(map['createdAt']),
-      updatedAt: _readDate(map['updatedAt']),
+      createdAt: readFirestoreDate(map['createdAt']),
+      updatedAt: readFirestoreDate(map['updatedAt']),
     );
   }
-}
-
-DateTime _readDate(Object? value) {
-  if (value is DateTime) {
-    return value;
-  }
-  if (value == null) {
-    return DateTime.fromMillisecondsSinceEpoch(0);
-  }
-
-  final dynamic dynamicValue = value;
-  final Object? date = dynamicValue.toDate();
-  if (date is DateTime) {
-    return date;
-  }
-
-  return DateTime.fromMillisecondsSinceEpoch(0);
 }

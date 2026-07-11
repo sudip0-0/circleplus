@@ -1,3 +1,5 @@
+import '../../../core/utils/firestore_date.dart';
+
 enum CircleMemberRole {
   creator,
   member;
@@ -48,21 +50,8 @@ class CircleMemberModel {
       role: CircleMemberRole.fromName(map['role'] as String?),
       displayName: map['displayName'] as String? ?? '',
       photoUrl: map['photoUrl'] as String?,
-      joinedAt: _readDate(map['joinedAt']),
+      joinedAt: readFirestoreDate(map['joinedAt']),
       inviteCodeUsed: map['inviteCodeUsed'] as String?,
     );
   }
-}
-
-DateTime _readDate(Object? value) {
-  if (value is DateTime) {
-    return value;
-  }
-  if (value == null) {
-    return DateTime.fromMillisecondsSinceEpoch(0);
-  }
-
-  final dynamic dynamicValue = value;
-  final Object? date = dynamicValue.toDate();
-  return date is DateTime ? date : DateTime.fromMillisecondsSinceEpoch(0);
 }

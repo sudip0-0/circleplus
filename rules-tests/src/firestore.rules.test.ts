@@ -28,8 +28,10 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
   collection,
   getDocs,
+  writeBatch,
 } from "firebase/firestore";
 
 // ─── Load rules from the project root ────────────────────────────────────────
@@ -472,15 +474,32 @@ describe("Circle join rules", () => {
     // This is exactly what the repository does in a transaction.
     const charlie = env.authenticatedContext(CHARLIE);
     const db = charlie.firestore();
+    const batch = writeBatch(db);
+    batch.set(doc(db, memberPath(CIRCLE_ID, CHARLIE)), {
+      userId: CHARLIE,
+      circleId: CIRCLE_ID,
+      role: "member",
+      displayName: "Charlie",
+      photoUrl: null,
+      joinedAt: new Date(),
+      inviteCodeUsed: INVITE_CODE,
+    });
+    batch.update(doc(db, circlePath(CIRCLE_ID)), {
+      memberCount: 3, // baseline seed is Alice + Bob = 2
+      updatedAt: new Date(),
+    });
+    await assertSucceeds(batch.commit());
+  });
 
-    // Step 1: write member document (role='member', valid invite code)
-    const memberDocRef = doc(db, memberPath(CIRCLE_ID, CHARLIE));
-    await assertSucceeds(
-      setDoc(memberDocRef, {
-        userId: CHARLIE,
+  test("join without memberCount increment is denied", async () => {
+    const dave = "user-dave-nocount";
+    const daveCtx = env.authenticatedContext(dave);
+    await assertFails(
+      setDoc(doc(daveCtx.firestore(), memberPath(CIRCLE_ID, dave)), {
+        userId: dave,
         circleId: CIRCLE_ID,
         role: "member",
-        displayName: "Charlie",
+        displayName: "Dave",
         photoUrl: null,
         joinedAt: new Date(),
         inviteCodeUsed: INVITE_CODE,
@@ -687,9 +706,40 @@ describe("Message rules", () => {
 
   test("sender can soft-delete their own message", async () => {
     const alice = env.authenticatedContext(ALICE);
+    // Client path: type → deleted and text/mediaUrl keys removed (not null).
     await assertSucceeds(
       updateDoc(doc(alice.firestore(), messagePath(CIRCLE_ID, MESSAGE_ID)), {
         type: "deleted",
+        text: deleteField(),
+        mediaUrl: deleteField(),
+        deletedAt: new Date(),
+      })
+    );
+  });
+
+  test("soft-delete with null text/mediaUrl is denied", async () => {
+    const alice = env.authenticatedContext(ALICE);
+    const msgId = "msg-null-soft-delete";
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), messagePath(CIRCLE_ID, msgId)), {
+        id: msgId,
+        circleId: CIRCLE_ID,
+        senderId: ALICE,
+        senderName: "Alice",
+        senderPhotoUrl: null,
+        type: "text",
+        text: "Hello",
+        mediaUrl: null,
+        createdAt: new Date(),
+        updatedAt: null,
+        deletedAt: null,
+      });
+    });
+    await assertFails(
+      updateDoc(doc(alice.firestore(), messagePath(CIRCLE_ID, msgId)), {
+        type: "deleted",
+        text: null,
+        mediaUrl: null,
         deletedAt: new Date(),
       })
     );
@@ -700,6 +750,8 @@ describe("Message rules", () => {
     await assertFails(
       updateDoc(doc(bob.firestore(), messagePath(CIRCLE_ID, MESSAGE_ID)), {
         type: "deleted",
+        text: deleteField(),
+        mediaUrl: deleteField(),
         deletedAt: new Date(),
       })
     );
@@ -1222,6 +1274,47 @@ describe("Plan response and atomic count rules", () => {
       )
     );
   });
+
+  test("responses on cancelled plans are denied", async () => {
+    const cancelledPlanId = "plan-cancelled-resp";
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), planPath(CIRCLE_ID, cancelledPlanId)), {
+        id: cancelledPlanId,
+        circleId: CIRCLE_ID,
+        createdBy: ALICE,
+        createdByName: "Alice",
+        title: "Cancelled meetup",
+        description: null,
+        location: null,
+        startsAt: new Date(),
+        status: "cancelled",
+        inCount: 0,
+        maybeCount: 0,
+        cantCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    });
+
+    const bob = env.authenticatedContext(BOB);
+    const db = bob.firestore();
+    const batch = writeBatch(db);
+    batch.set(doc(db, planResponsePath(CIRCLE_ID, cancelledPlanId, BOB)), {
+      userId: BOB,
+      userName: "Bob",
+      userPhotoUrl: null,
+      response: "in",
+      comment: null,
+      updatedAt: new Date(),
+    });
+    batch.update(doc(db, planPath(CIRCLE_ID, cancelledPlanId)), {
+      inCount: 1,
+      maybeCount: 0,
+      cantCount: 0,
+      updatedAt: new Date(),
+    });
+    await assertFails(batch.commit());
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1309,6 +1402,129 @@ describe("Collection-group members query", () => {
           where("userId", "==", ALICE) // querying for Alice's memberships
         )
       )
+    );
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 13. CIRCLE DELETE + ORPHAN GUARDS
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("Circle delete and orphan guards", () => {
+  let env: RulesTestEnvironment;
+
+  beforeAll(async () => {
+    env = await makeEnv("circle-delete");
+  });
+
+  afterAll(async () => env.cleanup());
+
+  test("last-member creator can delete Circle + own membership atomically", async () => {
+    const soloCircleId = "circle-solo-delete";
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, circlePath(soloCircleId)), {
+        id: soloCircleId,
+        name: "Solo Circle",
+        description: null,
+        coverUrl: null,
+        createdBy: ALICE,
+        inviteCode: "SOLO01",
+        memberCount: 1,
+        lastMessageText: null,
+        lastMessageAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      await setDoc(doc(db, memberPath(soloCircleId, ALICE)), {
+        userId: ALICE,
+        circleId: soloCircleId,
+        role: "creator",
+        displayName: "Alice",
+        photoUrl: null,
+        joinedAt: new Date(),
+        inviteCodeUsed: null,
+      });
+      await setDoc(doc(db, messagePath(soloCircleId, "orphan-msg")), {
+        id: "orphan-msg",
+        circleId: soloCircleId,
+        senderId: ALICE,
+        senderName: "Alice",
+        senderPhotoUrl: null,
+        type: "text",
+        text: "left behind",
+        mediaUrl: null,
+        createdAt: new Date(),
+        updatedAt: null,
+        deletedAt: null,
+      });
+    });
+
+    const alice = env.authenticatedContext(ALICE);
+    const db = alice.firestore();
+    const batch = writeBatch(db);
+    batch.delete(doc(db, memberPath(soloCircleId, ALICE)));
+    batch.delete(doc(db, circlePath(soloCircleId)));
+    await assertSucceeds(batch.commit());
+  });
+
+  test("join is denied when Circle parent document is missing", async () => {
+    const ghostCircleId = "circle-ghost";
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), inviteCodePath("GHOST1")), {
+        code: "GHOST1",
+        circleId: ghostCircleId,
+        createdBy: ALICE,
+        createdAt: new Date(),
+      });
+    });
+
+    const bob = env.authenticatedContext(BOB);
+    await assertFails(
+      setDoc(doc(bob.firestore(), memberPath(ghostCircleId, BOB)), {
+        userId: BOB,
+        circleId: ghostCircleId,
+        role: "member",
+        displayName: "Bob",
+        photoUrl: null,
+        joinedAt: new Date(),
+        inviteCodeUsed: "GHOST1",
+      })
+    );
+  });
+
+  test("orphaned messages are unreadable after Circle parent is deleted", async () => {
+    const orphanCircleId = "circle-orphan-msg";
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      // Seed orphaned message + member without a Circle parent.
+      await setDoc(doc(db, memberPath(orphanCircleId, BOB)), {
+        userId: BOB,
+        circleId: orphanCircleId,
+        role: "member",
+        displayName: "Bob",
+        photoUrl: null,
+        joinedAt: new Date(),
+        inviteCodeUsed: "ORPH01",
+      });
+      await setDoc(doc(db, messagePath(orphanCircleId, "msg-orphan")), {
+        id: "msg-orphan",
+        circleId: orphanCircleId,
+        senderId: BOB,
+        senderName: "Bob",
+        senderPhotoUrl: null,
+        type: "text",
+        text: "secret",
+        mediaUrl: null,
+        createdAt: new Date(),
+        updatedAt: null,
+        deletedAt: null,
+      });
+    });
+
+    const bob = env.authenticatedContext(BOB);
+    await assertFails(
+      getDoc(doc(bob.firestore(), messagePath(orphanCircleId, "msg-orphan")))
     );
   });
 });

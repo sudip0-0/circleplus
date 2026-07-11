@@ -1,3 +1,5 @@
+import '../../../core/utils/firestore_date.dart';
+
 class PulseModel {
   const PulseModel({
     required this.id,
@@ -52,25 +54,12 @@ class PulseModel {
       caption: map['caption'] as String?,
       mood: map['mood'] as String?,
       dateKey: map['dateKey'] as String? ?? '',
-      createdAt: _readDate(map['createdAt']),
-      updatedAt: _readDate(map['updatedAt']),
+      createdAt: readFirestoreDate(map['createdAt']),
+      updatedAt: readFirestoreDate(map['updatedAt']),
     );
   }
 }
 
 String pulseDocumentId({required String dateKey, required String userId}) {
   return '${dateKey}_$userId';
-}
-
-DateTime _readDate(Object? value) {
-  if (value is DateTime) {
-    return value;
-  }
-  if (value == null) {
-    return DateTime.fromMillisecondsSinceEpoch(0);
-  }
-
-  final dynamic dynamicValue = value;
-  final Object? date = dynamicValue.toDate();
-  return date is DateTime ? date : DateTime.fromMillisecondsSinceEpoch(0);
 }

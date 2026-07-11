@@ -47,7 +47,10 @@ class CircleMembersScreen extends ConsumerWidget {
       ),
       body: members.when(
         loading: () => const LoadingView(),
-        error: (error, stackTrace) => ErrorView(message: error.toString()),
+        error: (error, stackTrace) => ErrorView(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(circleMembersProvider(circleId)),
+        ),
         data: (items) {
           if (items.isEmpty) {
             return const EmptyState(
@@ -239,7 +242,8 @@ class _LeaveCircleButton extends ConsumerWidget {
         builder: (ctx) => AlertDialog(
           title: const Text('Delete Circle?'),
           content: const Text(
-            "You're the only member left. Deleting will permanently remove this Circle and all its content.",
+            "You're the only member left. Deleting removes this Circle from the app. "
+            "Chat history and media cleanup may complete later; invite codes for this Circle will stop working for new joins.",
           ),
           actions: [
             TextButton(

@@ -61,7 +61,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       ),
       body: profile.when(
         loading: () => const LoadingView(),
-        error: (error, stackTrace) => ErrorView(message: error.toString()),
+        error: (error, stackTrace) => ErrorView(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(currentUserProfileProvider),
+        ),
         data: (user) {
           if (user == null) {
             final authUser = ref.watch(currentUserProvider);

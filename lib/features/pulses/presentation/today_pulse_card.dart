@@ -20,7 +20,10 @@ class TodayPulseCard extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       child: pulses.when(
         loading: () => const _PulseLoadingState(),
-        error: (error, stackTrace) => ErrorView(message: error.toString()),
+        error: (error, stackTrace) => ErrorView(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(todayPulsesProvider(circleId)),
+        ),
         data: (items) {
           final posted = myPulse.maybeWhen(
             data: (pulse) => pulse != null,

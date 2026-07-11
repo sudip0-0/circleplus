@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/errors/app_exception.dart';
+import '../../../core/utils/circle_leave_guard.dart';
 import '../../../core/utils/invite_code_generator.dart';
 import '../../profile/domain/app_user.dart';
 import '../domain/circle.dart';
@@ -126,9 +127,12 @@ class FirebaseCircleRepository implements CircleRepository {
               .toSet()
               .toList();
 
+          final snapshots = await Future.wait(
+            circleIds.map((circleId) => _circles.doc(circleId).get()),
+          );
+
           final circles = <CircleModel>[];
-          for (final circleId in circleIds) {
-            final circleSnapshot = await _circles.doc(circleId).get();
+          for (final circleSnapshot in snapshots) {
             final data = circleSnapshot.data();
             if (circleSnapshot.exists && data != null) {
               circles.add(CircleModel.fromMap(data));
@@ -184,11 +188,7 @@ class FirebaseCircleRepository implements CircleRepository {
       final memberCount =
           (circleSnapshot.data()?['memberCount'] as int?) ?? 0;
 
-      if (role == 'creator' && memberCount > 1) {
-        throw const AppException(
-          'You created this Circle. Ask another member to host it before you leave, or delete the Circle if you want to close it.',
-        );
-      }
+      guardLeaveAsCreator(role: role, memberCount: memberCount);
 
       transaction.delete(memberRef);
       transaction.update(circleRef, {

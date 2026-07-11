@@ -17,6 +17,15 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final circles = ref.watch(userCirclesProvider);
+    final authState = ref.watch(authControllerProvider);
+
+    ref.listen(authControllerProvider, (previous, next) {
+      if (next.hasError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.error.toString())),
+        );
+      }
+    });
 
     return WarmScaffold(
       appBar: WarmAppBar(
@@ -29,8 +38,9 @@ class HomeScreen extends ConsumerWidget {
           ),
           SoftIconButton(
             tooltip: 'Sign out',
-            onPressed: () =>
-                ref.read(authControllerProvider.notifier).signOut(),
+            onPressed: authState.isLoading
+                ? null
+                : () => ref.read(authControllerProvider.notifier).signOut(),
             icon: Icons.logout,
           ),
           const SizedBox(width: 8),
@@ -38,7 +48,10 @@ class HomeScreen extends ConsumerWidget {
       ),
       body: circles.when(
         loading: () => const LoadingView(),
-        error: (error, stackTrace) => ErrorView(message: error.toString()),
+        error: (error, stackTrace) => ErrorView(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(userCirclesProvider),
+        ),
         data: (items) {
           if (items.isEmpty) {
             return EmptyState(
@@ -204,7 +217,10 @@ class CircleCard extends StatelessWidget {
             children: [
               _HomePulseProgress(circle: circle),
               const SizedBox(height: 8),
-              const Icon(Icons.more_vert, color: CirclePulseColors.muted),
+              const Icon(
+                Icons.chevron_right,
+                color: CirclePulseColors.muted,
+              ),
             ],
           ),
         ],

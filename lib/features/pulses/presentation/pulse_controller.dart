@@ -2,18 +2,13 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/providers.dart';
 import '../../../core/utils/app_logger.dart';
+import '../../../core/utils/require_current_profile.dart';
+import '../../../services/storage/storage_service.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../profile/domain/app_user.dart';
-import '../../profile/presentation/profile_providers.dart';
-import '../../../services/storage/storage_service.dart';
-import '../data/firebase_pulse_repository.dart';
 import '../domain/pulse.dart';
-import '../domain/pulse_repository.dart';
-
-final pulseRepositoryProvider = Provider<PulseRepository>((ref) {
-  return FirebasePulseRepository();
-});
 
 final todayPulsesProvider = StreamProvider.family<List<PulseModel>, String>((
   ref,
@@ -103,13 +98,10 @@ class PulseController extends AsyncNotifier<void> {
     if (user == null) {
       throw StateError('You must be signed in.');
     }
-    final profile = await ref
-        .read(profileRepositoryProvider)
-        .getProfile(user.id);
-    if (profile == null) {
-      throw StateError('Create your profile before posting a Pulse.');
-    }
-    return profile;
+    return requireCurrentProfile(
+      profileRepository: ref.read(profileRepositoryProvider),
+      userId: user.id,
+    );
   }
 
   void _logState(String event, [Map<String, Object?> details = const {}]) {

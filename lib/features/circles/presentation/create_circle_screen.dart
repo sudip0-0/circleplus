@@ -110,18 +110,6 @@ class _CreateCircleScreenState extends ConsumerState<CreateCircleScreen> {
                             prefixIcon: Icons.chat_bubble_outline,
                             maxLines: 3,
                           ),
-                          const SizedBox(height: 14),
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(
-                              Icons.mood_outlined,
-                              color: CirclePulseColors.clay,
-                            ),
-                            title: const Text('Cover icon (optional)'),
-                            subtitle: const Text('Choose an emoji or icon'),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () {},
-                          ),
                         ],
                       ),
                     ),

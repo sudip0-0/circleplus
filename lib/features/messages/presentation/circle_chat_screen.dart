@@ -23,10 +23,16 @@ class CircleChatScreen extends ConsumerWidget {
       resizeToAvoidBottomInset: true,
       body: circle.when(
         loading: () => const LoadingView(),
-        error: (error, stackTrace) => ErrorView(message: error.toString()),
+        error: (error, stackTrace) => ErrorView(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(circleProvider(circleId)),
+        ),
         data: (item) {
           if (item == null) {
-            return const ErrorView(message: 'Circle was not found.');
+            return ErrorView(
+              message: 'Circle was not found.',
+              onRetry: () => ref.invalidate(circleProvider(circleId)),
+            );
           }
 
           return Column(

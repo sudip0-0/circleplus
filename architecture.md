@@ -446,7 +446,20 @@ circles/{circleId}/pulses/{dateKey}_{userId}.jpg
 
 CirclePulse uses Cloudflare R2 for media storage instead of Firebase Storage.
 R2 credentials must never be shipped in the Flutter app. They may live in a
-local `.env` file for backend/serverless development only.
+local `.env` file for backend/serverless development only. Keep `.env` and
+`backend/r2-upload-worker/wrangler.toml` gitignored; rotate tokens if they are
+ever shared or committed.
+
+**MVP known limitation:** the Worker returns public object URLs after a
+membership-checked upload. Anyone who obtains that URL can fetch the bytes
+without Firebase Auth. Signed/authenticated downloads are a post-MVP hardening
+item.
+
+**Circle delete (MVP):** last-member creator delete removes the Circle document
+and creator membership client-side. Recursive subcollection + invite-code
+cleanup requires a trusted backend and is deferred. Firestore rules require the
+Circle parent to exist for membership-gated access so orphaned subcollections
+are not readable after parent deletion.
 
 The Flutter app uploads media through a backend or serverless endpoint that
 returns presigned upload URLs. Media features depend on the `StorageService`

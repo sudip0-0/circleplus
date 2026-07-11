@@ -1,3 +1,5 @@
+import '../../../core/utils/firestore_date.dart';
+
 enum MessageType {
   text,
   photo,
@@ -68,26 +70,9 @@ class MessageModel {
       type: MessageType.fromName(map['type'] as String?),
       text: map['text'] as String?,
       mediaUrl: map['mediaUrl'] as String?,
-      createdAt: _readDate(map['createdAt']),
-      updatedAt: _readNullableDate(map['updatedAt']),
-      deletedAt: _readNullableDate(map['deletedAt']),
+      createdAt: readFirestoreDate(map['createdAt']),
+      updatedAt: readNullableFirestoreDate(map['updatedAt']),
+      deletedAt: readNullableFirestoreDate(map['deletedAt']),
     );
   }
-}
-
-DateTime _readDate(Object? value) {
-  return _readNullableDate(value) ?? DateTime.fromMillisecondsSinceEpoch(0);
-}
-
-DateTime? _readNullableDate(Object? value) {
-  if (value is DateTime) {
-    return value;
-  }
-  if (value == null) {
-    return null;
-  }
-
-  final dynamic dynamicValue = value;
-  final Object? date = dynamicValue.toDate();
-  return date is DateTime ? date : null;
 }

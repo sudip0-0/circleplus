@@ -123,9 +123,6 @@ class _CreatePlanScreenState extends ConsumerState<CreatePlanScreen> {
                             prefixIcon: Icons.notes_outlined,
                             maxLines: 3,
                           ),
-                          const SizedBox(height: 14),
-                          // Placeholder for a future "open invitation" toggle.
-                          // Removed from UI until the feature is implemented.
                         ],
                       ),
                     ),

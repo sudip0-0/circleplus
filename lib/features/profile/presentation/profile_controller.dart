@@ -2,10 +2,10 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/providers.dart';
 import '../../../services/storage/storage_service.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../domain/app_user.dart';
-import 'profile_providers.dart';
 
 final currentUserProfileProvider = StreamProvider<AppUser?>((ref) {
   final user = ref.watch(currentUserProvider);

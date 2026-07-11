@@ -2,18 +2,13 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/providers.dart';
 import '../../../core/utils/app_logger.dart';
+import '../../../core/utils/require_current_profile.dart';
 import '../../../services/storage/storage_service.dart';
 import '../../auth/presentation/auth_controller.dart';
 import '../../profile/domain/app_user.dart';
-import '../../profile/presentation/profile_providers.dart';
-import '../data/firebase_message_repository.dart';
 import '../domain/message.dart';
-import '../domain/message_repository.dart';
-
-final messageRepositoryProvider = Provider<MessageRepository>((ref) {
-  return FirebaseMessageRepository();
-});
 
 final circleMessagesProvider =
     StreamProvider.family<List<MessageModel>, String>((ref, circleId) {
@@ -43,10 +38,10 @@ class MessageController extends AsyncNotifier<void> {
 
   Future<void> uploadPhotoMessage({
     required String circleId,
-    required List<int> bytes,
+    required Uint8List bytes,
     required String contentType,
     required String fileExtension,
-    required String? text,
+    String? text,
   }) async {
     final sender = await _requireProfile();
     state = const AsyncLoading();
@@ -55,7 +50,7 @@ class MessageController extends AsyncNotifier<void> {
           .read(storageServiceProvider)
           .uploadBytes(
             type: StorageUploadType.messagePhoto,
-            bytes: Uint8List.fromList(bytes),
+            bytes: bytes,
             contentType: contentType,
             fileExtension: fileExtension,
             circleId: circleId,
@@ -75,17 +70,12 @@ class MessageController extends AsyncNotifier<void> {
   Future<void> softDeleteMessage({
     required String circleId,
     required String messageId,
-    required String senderId,
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() {
       return ref
           .read(messageRepositoryProvider)
-          .softDeleteMessage(
-            circleId: circleId,
-            messageId: messageId,
-            senderId: senderId,
-          );
+          .softDeleteMessage(circleId: circleId, messageId: messageId);
     });
     _logState('message.softDelete', {
       'circleId': circleId,
@@ -98,13 +88,10 @@ class MessageController extends AsyncNotifier<void> {
     if (user == null) {
       throw StateError('You must be signed in.');
     }
-    final profile = await ref
-        .read(profileRepositoryProvider)
-        .getProfile(user.id);
-    if (profile == null) {
-      throw StateError('Create your profile before sending messages.');
-    }
-    return profile;
+    return requireCurrentProfile(
+      profileRepository: ref.read(profileRepositoryProvider),
+      userId: user.id,
+    );
   }
 
   void _logState(String event, [Map<String, Object?> details = const {}]) {

@@ -147,6 +147,10 @@ CirclePulse is a Flutter mobile app for private friend groups. Users create Circ
 - [ ] Deploy R2 Worker: `wrangler deploy` (from backend/r2-upload-worker)
 - [ ] Test basic access manually (see Manual Smoke Test Checklist below)
 
+**Manual deploy required:** CI runs analyze/unit tests and TypeScript compile for
+rules-tests; it does not deploy Firebase or Cloudflare. Keep the boxes above
+unchecked until you run those commands against your project.
+
 Firestore rules are configured locally in `firestore.rules` and referenced from `firebase.json`. Deploy with `firebase deploy --only firestore`.
 
 Firestore indexes are configured locally in `firestore.indexes.json`. Required indexes:
@@ -211,6 +215,35 @@ Firestore indexes are configured locally in `firestore.indexes.json`. Required i
 - Advanced privacy settings
 
 ## Known Product Decisions
+
+### Decision: Public R2 media URLs for MVP
+
+Reason:
+Presigned upload + public object URLs keep the upload Worker simple. Firestore
+membership still protects stored URLs, but anyone who obtains a media URL can
+fetch the bytes without Firebase Auth. Authenticated/signed downloads are
+deferred until after beta.
+
+### Decision: Client Circle delete does not cascade yet
+
+Reason:
+Last-member creator delete removes the Circle parent and creator membership.
+Subcollections and invite-code docs may remain until a trusted backend recursive
+delete + invite revoke ships. Rules require a living Circle parent for
+membership-gated reads/writes so orphaned content is not readable.
+
+### Decision: Home Pulse listener fan-out accepted for MVP
+
+Reason:
+Home opens one today-Pulse query (and my-Pulse stream) per Circle while visible.
+Acceptable for small groups; denormalize progress onto Circle docs before scaling.
+
+### Decision: Pulse “today only” enforced mainly in the client (MVP)
+
+Reason:
+Firestore rules enforce Pulse document ID shape (`yyyyMMdd_uid`) and self-writes,
+but do not compare the date key to the server calendar day. Tightening that in
+rules is deferred; treat backdated/future Pulse IDs as an accepted MVP risk.
 
 ### Decision: No public feed
 
@@ -294,6 +327,34 @@ Security rules are now covered by the Firebase Emulator test harness in `rules-t
 - [ ] Signed-in non-member cannot read or write Circle messages, Pulses, Plans, or responses
 - [ ] Plan count-only writes are denied unless paired with the current user's response write
 - [ ] R2 signer denies Circle media signing for signed-in non-members
+
+## Session 8 Completed Work (2026-07-11) — Audit remediation A–E
+
+### Critical / security
+- Fixed Delete Circle rules for last-member creator transaction
+- `isCircleMember` requires living Circle parent (orphan subcollections unreadable)
+- Join requires existing Circle + atomic memberCount + 1
+- Soft-delete uses `FieldValue.delete()`; rules-tests updated
+- Plan responses blocked when plan is cancelled
+- R2 Worker: required contentLength, exact MIME allow-list, safer circleId
+- Documented public R2 URL MVP limitation + deferred cascade delete
+
+### UX / DX
+- Removed cover picker no-op; ErrorView retries; Home sign-out feedback; chevron instead of dead more_vert
+- CI workflow (analyze + test + rules TS compile)
+- Auth redirect unit tests; leave guard shared with repository
+- README quickstart; FCM claim removed
+
+### Perf / architecture
+- Parallel Circle fetches on Home membership stream
+- Plan query limits; cached_network_image for media
+- Central `lib/app/providers.dart`; shared profile/date helpers
+- Extracted Circle Room pulse/moments panels + Plan cancelled banner
+- Removed empty FirebaseService
+
+### Still manual
+- Deploy Firestore rules/indexes and R2 Worker
+- Two-user beta smoke test
 
 ## Session 7 Completed Work (2026-05-17)
 

@@ -1,3 +1,5 @@
+import '../../../core/utils/firestore_date.dart';
+
 enum PlanResponseValue {
   in_,
   maybe,
@@ -56,7 +58,7 @@ class PlanResponseModel {
       userPhotoUrl: map['userPhotoUrl'] as String?,
       response: PlanResponseValue.fromName(map['response'] as String?),
       comment: map['comment'] as String?,
-      updatedAt: _readDate(map['updatedAt']),
+      updatedAt: readFirestoreDate(map['updatedAt']),
     );
   }
 }
@@ -82,17 +84,4 @@ String _countField(PlanResponseValue value) {
     PlanResponseValue.maybe => 'maybeCount',
     PlanResponseValue.cant => 'cantCount',
   };
-}
-
-DateTime _readDate(Object? value) {
-  if (value is DateTime) {
-    return value;
-  }
-  if (value == null) {
-    return DateTime.fromMillisecondsSinceEpoch(0);
-  }
-
-  final dynamic dynamicValue = value;
-  final Object? date = dynamicValue.toDate();
-  return date is DateTime ? date : DateTime.fromMillisecondsSinceEpoch(0);
 }

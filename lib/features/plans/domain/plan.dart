@@ -1,3 +1,5 @@
+import '../../../core/utils/firestore_date.dart';
+
 enum PlanStatus {
   active,
   cancelled,
@@ -72,26 +74,13 @@ class PlanModel {
       title: map['title'] as String? ?? '',
       description: map['description'] as String?,
       location: map['location'] as String?,
-      startsAt: _readDate(map['startsAt']),
+      startsAt: readFirestoreDate(map['startsAt']),
       status: PlanStatus.fromName(map['status'] as String?),
       inCount: map['inCount'] as int? ?? 0,
       maybeCount: map['maybeCount'] as int? ?? 0,
       cantCount: map['cantCount'] as int? ?? 0,
-      createdAt: _readDate(map['createdAt']),
-      updatedAt: _readDate(map['updatedAt']),
+      createdAt: readFirestoreDate(map['createdAt']),
+      updatedAt: readFirestoreDate(map['updatedAt']),
     );
   }
-}
-
-DateTime _readDate(Object? value) {
-  if (value is DateTime) {
-    return value;
-  }
-  if (value == null) {
-    return DateTime.fromMillisecondsSinceEpoch(0);
-  }
-
-  final dynamic dynamicValue = value;
-  final Object? date = dynamicValue.toDate();
-  return date is DateTime ? date : DateTime.fromMillisecondsSinceEpoch(0);
 }

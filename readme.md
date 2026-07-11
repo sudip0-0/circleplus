@@ -67,6 +67,38 @@ Members can respond:
 - Maybe
 - Can’t
 
+## Quickstart (local)
+
+1. Install Flutter (SDK ^3.11) and enable a device/emulator.
+2. Clone this repo and install packages:
+
+```bash
+flutter pub get
+```
+
+3. Configure Firebase (Auth + Firestore) with FlutterFire:
+
+```bash
+dart pub global activate flutterfire_cli
+flutterfire configure
+```
+
+4. Deploy or reuse a Cloudflare R2 upload Worker (see below), then run:
+
+```bash
+flutter run --dart-define=R2_UPLOAD_SIGNER_URL=https://your-worker-url
+```
+
+5. Optional checks:
+
+```bash
+flutter analyze
+flutter test
+```
+
+Firestore rules/indexes and the R2 Worker must be deployed before real-device media
+and membership smoke tests. Those deploys are **manual** (not performed by CI).
+
 ## Recommended Tech Stack
 
 - Flutter
@@ -74,10 +106,13 @@ Members can respond:
 - Firebase Authentication
 - Cloud Firestore
 - Cloudflare R2 for media storage
-- Firebase Cloud Messaging-ready structure
 - Riverpod
 - GoRouter
 - Material 3
+
+> **MVP media note:** Circle photo URLs are publicly fetchable if the URL leaks.
+> Membership protects Firestore metadata, not R2 object bytes. Signed downloads
+> are planned after beta.
 
 ## Project Files
 
@@ -112,7 +147,8 @@ Add dependencies:
 
 ```bash
 flutter pub add firebase_core firebase_auth cloud_firestore
-flutter pub add flutter_riverpod go_router image_picker intl uuid cached_network_image
+flutter pub add flutter_riverpod go_router image_picker intl http async image
+flutter pub add cached_network_image
 ```
 
 Current MVP storage decision:
