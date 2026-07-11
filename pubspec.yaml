@@ -41,7 +41,7 @@ dependencies:
   go_router: ^17.2.3
   http: ^1.6.0
   image_picker: ^1.2.2
-  intl: ^0.20.2
+  intl: ^0.20.3
   async: ^2.13.1
   image: ^4.8.0
   cached_network_image: ^3.4.1
